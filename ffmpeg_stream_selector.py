@@ -33,11 +33,13 @@ class StreamSelectorApp:
         self.verify_var = tk.BooleanVar(value=True)
         self.verify_check = tk.Checkbutton(self.frame, text="Verify stream order after conversion", variable=self.verify_var)
         self.verify_check.grid(row=6, column=0, columnspan=2, sticky="w")
-        self.convert_btn = tk.Button(self.frame, text="Convert Selected", command=self.convert_selected)
-    
-        self.convert_btn.grid(row=4, column=0, pady=10)
+        self.convert_video_btn = tk.Button(self.frame, text="Convert to HEVC", command=self.convert_to_hevc)
+        self.update_streams_btn = tk.Button(self.frame, text="Update Streams", command=self.update_streams)
+
+        self.convert_video_btn.grid(row=4, column=0, pady=10)
+        self.update_streams_btn.grid(row=4, column=1, pady=10)
         self.exit_btn = tk.Button(self.frame, text="Exit", command=self.root.quit)
-        self.exit_btn.grid(row=4, column=1, pady=10)
+        self.exit_btn.grid(row=5, column=0, columnspan=2, pady=10)
     def select_path(self):
         from pathlib import Path
         from pathlib import Path
@@ -54,6 +56,7 @@ class StreamSelectorApp:
             messagebox.showerror("No Files", "No MKV or MP4 files found in selected folder.")
             return
         self.selected_file = self.video_files[0]
+        self.current_file = self.selected_file
         self.populate_stream_dropdowns(self.selected_file)
     
         if not self.video_files:
@@ -115,55 +118,84 @@ class StreamSelectorApp:
         menu.delete(0, "end")
         for opt in subtitle_options:
             menu.add_command(label=opt, command=lambda value=opt: self.subtitle_var.set(value))
-    def convert_selected(self):
-        first_converted_file = None
+
+    def convert_to_hevc(self):
         if not hasattr(self, 'selected_file'):
             messagebox.showwarning("No File", "Please select a video file first.")
             return
+
+        input_file = getattr(self, 'current_file', self.selected_file)
+        try:
+            result = subprocess.run(
+                [
+                    'ffprobe', '-v', 'error', '-select_streams', 'v:0',
+                    '-show_entries', 'stream=codec_name',
+                    '-of', 'default=noprint_wrappers=1:nokey=1', input_file
+                ],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            codec = result.stdout.strip().lower()
+            if codec in ('hevc', 'av1'):
+                messagebox.showinfo('Skipped', f'Skipping {input_file} (already {codec.upper()})')
+                self.current_file = input_file
+                return
+        except Exception as e:
+            messagebox.showwarning('Error', f'Codec check failed: {e}')
+            return
+
+        self.converted_dir = os.path.join(os.path.dirname(input_file), 'converted')
+        os.makedirs(self.converted_dir, exist_ok=True)
+        output_path = os.path.join(self.converted_dir, os.path.basename(input_file))
+
+        cmd = [
+            'ffmpeg', '-y', '-i', input_file,
+            '-c:v', 'hevc_amf', '-c:a', 'copy', '-c:s', 'copy',
+            '-map_chapters', '0', '-usage', 'transcoding',
+            '-b:v', self.bitrate_var.get() + 'k',
+            output_path
+        ]
+
+        try:
+            subprocess.run(cmd, check=True)
+            self.current_file = output_path
+            messagebox.showinfo('Success', 'Video converted:\n' + output_path)
+        except subprocess.CalledProcessError as e:
+            print('FFmpeg error:', e)
+            messagebox.showerror('Error', 'FFmpeg failed during conversion.')
+    def update_streams(self):
+        if not hasattr(self, 'selected_file'):
+            messagebox.showwarning("No File", "Please select a video file first.")
+            return
+
         audio = self.audio_var.get()
         subtitle = self.subtitle_var.get()
-
         if not audio or not subtitle:
             messagebox.showwarning("Selection Missing", "Please select both audio and subtitle streams.")
             return
 
         subtitle_index = subtitle.split(" ")[1]
-        # Extract stream indices
         audio_index = audio.split(" ")[1]
-        try:
-            result = subprocess.run(
-                [
-                    "ffprobe", "-v", "error", "-select_streams", "v:0",
-                    "-show_entries", "stream=codec_name",
-                    "-of", "default=noprint_wrappers=1:nokey=1", self.selected_file
-                ],
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            codec = result.stdout.strip().lower()
-            if codec in ("hevc", "av1"):
-                messagebox.showinfo("Skipped", f"Skipping {self.selected_file} (already {codec.upper()})")
-                return
-        except Exception as e:
-            messagebox.showwarning("Error", f"Codec check failed: {e}")
-            return
-        self.converted_dir = os.path.join(os.path.dirname(self.selected_file), "converted")
+
+        input_file = getattr(self, 'current_file', self.selected_file)
+        self.converted_dir = os.path.join(os.path.dirname(input_file), "converted")
         os.makedirs(self.converted_dir, exist_ok=True)
-        output_path = os.path.join(self.converted_dir, os.path.basename(self.selected_file))
-        if first_converted_file is None:
-            first_converted_file = output_path
+        output_path = os.path.join(self.converted_dir, os.path.basename(input_file))
+
         cmd = [
-            "ffmpeg", "-y", "-i", self.selected_file,
+            "ffmpeg", "-y", "-i", input_file,
             "-map", f"0:{audio_index}", "-map", f"0:{subtitle_index}", "-map", "0:v:0",
-            "-c:v", "hevc_amf", "-c:a", "copy", "-c:s", "copy", "-map_chapters", "0", "-usage", "transcoding", "-b:v", self.bitrate_var.get() + "k",
+            "-c:v", "copy", "-c:a", "copy", "-c:s", "copy", "-map_chapters", "0",
             "-disposition:s:0", "forced",
             output_path
         ]
+
         try:
             subprocess.run(cmd, check=True)
-            messagebox.showinfo("Success", "Conversion complete:\n" + first_converted_file)
+            self.current_file = output_path
+            messagebox.showinfo("Success", "Streams updated:\n" + output_path)
         except subprocess.CalledProcessError as e:
             print("FFmpeg error:", e)
-            messagebox.showerror("Error", "FFmpeg failed during conversion.")
+            messagebox.showerror("Error", "FFmpeg failed during stream update.")
     def verify_stream_order(self, first_converted_file):
         import subprocess, json
         try:
