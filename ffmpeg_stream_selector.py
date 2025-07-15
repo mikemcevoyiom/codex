@@ -178,7 +178,7 @@ class StreamSelectorApp:
             if "forced" in title.lower():
                 label += " [FORCED]"
             if title:
-                label += f" ({title})" * 3
+                label += f" ({title})"
             audio_options.append(label)
 
             if default_audio is None and lang.lower() == "eng":
@@ -192,7 +192,7 @@ class StreamSelectorApp:
             if "forced" in title.lower():
                 label += " [FORCED]"
             if title:
-                label += f" ({title})" * 2
+                label += f" ({title})"
             subtitle_options.append(label)
 
             title_lower = title.lower()
