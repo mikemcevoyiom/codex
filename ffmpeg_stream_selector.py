@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 import subprocess
 import json
 
@@ -58,7 +58,7 @@ class StreamSelectorApp:
 
         self.convert_video_btn.grid(row=4, column=0, pady=10)
         self.update_streams_btn.grid(row=4, column=1, pady=10)
-        self.exit_btn = tk.Button(self.frame, text="Exit", command=self.root.quit)
+        self.exit_btn = tk.Button(self.frame, text="Exit", command=self.quit_app)
         self.exit_btn.grid(row=5, column=0, columnspan=2, pady=10)
 
     def log_status(self, status, input_file=None, output_file=None, message=""):
@@ -70,6 +70,49 @@ class StreamSelectorApp:
         }
         self.status_log.append(entry)
         print(f"{status.upper()}: {message or output_file or input_file}")
+
+    def commit_converted_files(self):
+        """Move processed files back to their original location and clean up."""
+        import shutil
+
+        for conv_dir in list(self.processed_dirs):
+            if not os.path.isdir(conv_dir):
+                continue
+            for file in os.listdir(conv_dir):
+                src_path = os.path.join(conv_dir, file)
+                dst_path = os.path.join(os.path.dirname(conv_dir), file)
+                shutil.move(src_path, dst_path)
+            try:
+                os.rmdir(conv_dir)
+            except OSError:
+                print(f"Could not remove {conv_dir} — it may not be empty.")
+        self.processed_dirs.clear()
+
+    def write_status_log(self):
+        """Write collected status information to a JSON file."""
+        output_dir = Path(r"D:\Video\unprocessed\new")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        with open(output_dir / "conversion_status.json", "w", encoding="utf-8") as f:
+            json.dump(self.status_log, f, indent=2)
+
+    def ask_commit_updates(self):
+        """Prompt the user to commit processed files if any exist."""
+        if not self.processed_dirs:
+            return
+        if messagebox.askyesno(
+            "Processing Complete",
+            "All work completed. Commit updates to original files?",
+        ):
+            self.commit_converted_files()
+            self.write_status_log()
+            messagebox.showinfo(
+                "Commit Complete", "Converted files have been moved back."
+            )
+
+    def quit_app(self):
+        """Handle exit button click."""
+        self.ask_commit_updates()
+        self.root.quit()
 
     def select_path(self):
         from pathlib import Path
@@ -245,6 +288,7 @@ class StreamSelectorApp:
                     message="FFmpeg failed during conversion",
                 )
 
+        self.ask_commit_updates()
     def update_streams(self):
         if not getattr(self, "video_files", None):
             self.log_status(
@@ -311,6 +355,7 @@ class StreamSelectorApp:
                     message="FFmpeg failed during stream update",
                 )
 
+        self.ask_commit_updates()
     def verify_stream_order(self, first_converted_file):
         import subprocess, json
 
@@ -348,24 +393,7 @@ if __name__ == "__main__":
     app = StreamSelectorApp(root)
     root.mainloop()
 
-    # Overwrite originals with converted files and clean up any 'converted' folders
-    import os, shutil
-
+    # Handle any remaining processed files when the window is closed directly
     if getattr(app, "processed_dirs", None):
-        for conv_dir in app.processed_dirs:
-            if not os.path.isdir(conv_dir):
-                continue
-            for file in os.listdir(conv_dir):
-                src_path = os.path.join(conv_dir, file)
-                dst_path = os.path.join(os.path.dirname(conv_dir), file)
-                shutil.move(src_path, dst_path)
-            try:
-                os.rmdir(conv_dir)
-            except OSError:
-                print(f"Could not remove {conv_dir} — it may not be empty.")
-
-    # Write status information to JSON file
-    output_dir = Path(r"D:\Video\unprocessed\new")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    with open(output_dir / "conversion_status.json", "w", encoding="utf-8") as f:
-        json.dump(app.status_log, f, indent=2)
+        app.commit_converted_files()
+        app.write_status_log()
