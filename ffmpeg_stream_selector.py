@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
 import subprocess
 import json
 
@@ -53,10 +53,23 @@ class StreamSelectorApp:
         # Track processed directories for cleanup after exiting
         self.processed_dirs = set()
 
+        # Collect status information for JSON output
+        self.status_log = []
+
         self.convert_video_btn.grid(row=4, column=0, pady=10)
         self.update_streams_btn.grid(row=4, column=1, pady=10)
         self.exit_btn = tk.Button(self.frame, text="Exit", command=self.root.quit)
         self.exit_btn.grid(row=5, column=0, columnspan=2, pady=10)
+
+    def log_status(self, status, input_file=None, output_file=None, message=""):
+        entry = {
+            "status": status,
+            "input": input_file,
+            "output": output_file,
+            "message": message,
+        }
+        self.status_log.append(entry)
+        print(f"{status.upper()}: {message or output_file or input_file}")
 
     def select_path(self):
         from pathlib import Path
@@ -70,8 +83,9 @@ class StreamSelectorApp:
             + [str(f) for f in Path(folder).rglob("*.mp4")]
         )
         if not self.video_files:
-            messagebox.showerror(
-                "No Files", "No MKV or MP4 files found in selected folder."
+            self.log_status(
+                "error",
+                message="No MKV or MP4 files found in selected folder."
             )
             return
 
@@ -149,7 +163,10 @@ class StreamSelectorApp:
 
     def convert_to_hevc(self):
         if not getattr(self, "video_files", None):
-            messagebox.showwarning("No File", "Please select a folder first.")
+            self.log_status(
+                "error",
+                message="Please select a folder first."
+            )
             return
 
         for input_file in self.video_files:
@@ -173,12 +190,18 @@ class StreamSelectorApp:
                 )
                 codec = result.stdout.strip().lower()
                 if codec in ("hevc", "av1"):
-                    messagebox.showinfo(
-                        "Skipped", f"Skipping {input_file} (already {codec.upper()})"
+                    self.log_status(
+                        "skipped",
+                        input_file=input_file,
+                        message=f"Already {codec.upper()}"
                     )
                     continue
             except Exception as e:
-                messagebox.showwarning("Error", f"Codec check failed: {e}")
+                self.log_status(
+                    "error",
+                    input_file=input_file,
+                    message=f"Codec check failed: {e}"
+                )
                 continue
 
             converted_dir = os.path.join(os.path.dirname(input_file), "converted")
@@ -209,23 +232,33 @@ class StreamSelectorApp:
                 subprocess.run(cmd, check=True)
                 self.processed_dirs.add(converted_dir)
                 self.current_file = output_path
-                messagebox.showinfo("Success", "Video converted:\n" + output_path)
+                self.log_status(
+                    "converted",
+                    input_file=input_file,
+                    output_file=output_path,
+                )
             except subprocess.CalledProcessError as e:
                 print("FFmpeg error:", e)
-                messagebox.showerror(
-                    "Error", f"FFmpeg failed during conversion of {input_file}."
+                self.log_status(
+                    "error",
+                    input_file=input_file,
+                    message="FFmpeg failed during conversion",
                 )
 
     def update_streams(self):
         if not getattr(self, "video_files", None):
-            messagebox.showwarning("No File", "Please select a folder first.")
+            self.log_status(
+                "error",
+                message="Please select a folder first."
+            )
             return
 
         audio = self.audio_var.get()
         subtitle = self.subtitle_var.get()
         if not audio or not subtitle:
-            messagebox.showwarning(
-                "Selection Missing", "Please select both audio and subtitle streams."
+            self.log_status(
+                "error",
+                message="Please select both audio and subtitle streams."
             )
             return
 
@@ -265,11 +298,17 @@ class StreamSelectorApp:
                 subprocess.run(cmd, check=True)
                 self.processed_dirs.add(converted_dir)
                 self.current_file = output_path
-                messagebox.showinfo("Success", "Streams updated:\n" + output_path)
+                self.log_status(
+                    "streams_updated",
+                    input_file=input_file,
+                    output_file=output_path,
+                )
             except subprocess.CalledProcessError as e:
                 print("FFmpeg error:", e)
-                messagebox.showerror(
-                    "Error", f"FFmpeg failed during stream update for {input_file}."
+                self.log_status(
+                    "error",
+                    input_file=input_file,
+                    message="FFmpeg failed during stream update",
                 )
 
     def verify_stream_order(self, first_converted_file):
@@ -324,3 +363,9 @@ if __name__ == "__main__":
                 os.rmdir(conv_dir)
             except OSError:
                 print(f"Could not remove {conv_dir} — it may not be empty.")
+
+    # Write status information to JSON file
+    output_dir = Path(r"D:\Video\unprocessed\new")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    with open(output_dir / "conversion_status.json", "w", encoding="utf-8") as f:
+        json.dump(app.status_log, f, indent=2)
