@@ -1,8 +1,9 @@
 # codex
 
-This repository contains a small Tkinter application for selecting audio and
+This repository contains a small PyQt application for selecting audio and
 subtitle streams in video files and optionally converting the video stream to
-HEVC using FFmpeg.
+HEVC using FFmpeg. PyQt allows more customizable widgets, including styled
+buttons.
 
 After launching the script, choose a folder containing your videos. Two buttons
 are available and each operation will be applied to every video in the selected

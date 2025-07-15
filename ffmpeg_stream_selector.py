@@ -1,65 +1,65 @@
 from pathlib import Path
 import os
-import tkinter as tk
-from tkinter import filedialog, messagebox
+import sys
+from PyQt5.QtWidgets import (
+    QApplication,
+    QWidget,
+    QGridLayout,
+    QLabel,
+    QPushButton,
+    QFileDialog,
+    QMessageBox,
+    QComboBox,
+    QCheckBox,
+)
 import subprocess
 import json
 
 
-class StreamSelectorApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("FFmpeg Stream Selector")
-        # Increase default window size for better spacing
-        self.root.geometry("450x300")
-        self.frame = tk.Frame(root)
-        self.frame.pack(padx=10, pady=10, fill="both", expand=True)
-        # Allow grid columns to expand proportionally
-        self.frame.columnconfigure(0, weight=1)
-        self.frame.columnconfigure(1, weight=1)
-        self.select_file_btn = tk.Button(
-            self.frame, text="Select Folder", command=self.select_path
-        )
-        self.select_file_btn.grid(row=0, column=0, columnspan=2, pady=5)
-        self.audio_label = tk.Label(self.frame, text="Select Audio Stream:")
-        self.audio_label.grid(row=1, column=0, sticky="e")
-        self.audio_var = tk.StringVar()
-        self.audio_dropdown = tk.OptionMenu(self.frame, self.audio_var, "")
-        self.audio_dropdown.grid(row=1, column=1, sticky="ew")
-        self.subtitle_label = tk.Label(self.frame, text="Select Subtitle Stream:")
-        self.subtitle_label.grid(row=2, column=0, sticky="e")
-        self.subtitle_var = tk.StringVar()
-        self.subtitle_dropdown = tk.OptionMenu(self.frame, self.subtitle_var, "")
-        self.subtitle_dropdown.grid(row=2, column=1, sticky="ew")
+class StreamSelectorApp(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("FFmpeg Stream Selector")
+        self.resize(450, 300)
 
-        self.bitrate_label = tk.Label(self.frame, text="Bitrate (kbps):")
-        self.bitrate_label.grid(row=3, column=0, sticky="e", pady=5)
-        self.bitrate_var = tk.StringVar()
-        self.bitrate_var.set("2000")
-        self.bitrate_dropdown = tk.OptionMenu(
-            self.frame, self.bitrate_var, *[str(b) for b in range(1000, 4500, 500)]
-        )
-        self.bitrate_dropdown.config(width=10)
-        self.bitrate_dropdown.grid(row=3, column=1, sticky="ew", pady=5)
-        self.verify_var = tk.BooleanVar(value=True)
-        self.verify_check = tk.Checkbutton(
-            self.frame,
-            text="Verify stream order after conversion",
-            variable=self.verify_var,
-        )
-        self.verify_check.grid(row=5, column=0, columnspan=2, sticky="w")
-        self.convert_video_btn = tk.Button(
-            self.frame,
-            text="Convert to HEVC",
-            command=self.convert_to_hevc,
-            bg="#add8e6",
-        )
-        self.update_streams_btn = tk.Button(
-            self.frame,
-            text="Update Streams",
-            command=self.update_streams,
-            bg="#90ee90",
-        )
+        layout = QGridLayout()
+        self.setLayout(layout)
+        layout.setColumnStretch(0, 1)
+        layout.setColumnStretch(1, 1)
+
+        self.select_file_btn = QPushButton("Select Folder")
+        self.select_file_btn.clicked.connect(self.select_path)
+        layout.addWidget(self.select_file_btn, 0, 0, 1, 2)
+
+        self.audio_label = QLabel("Select Audio Stream:")
+        layout.addWidget(self.audio_label, 1, 0)
+        self.audio_dropdown = QComboBox()
+        layout.addWidget(self.audio_dropdown, 1, 1)
+
+        self.subtitle_label = QLabel("Select Subtitle Stream:")
+        layout.addWidget(self.subtitle_label, 2, 0)
+        self.subtitle_dropdown = QComboBox()
+        layout.addWidget(self.subtitle_dropdown, 2, 1)
+
+        self.bitrate_label = QLabel("Bitrate (kbps):")
+        layout.addWidget(self.bitrate_label, 3, 0)
+        self.bitrate_dropdown = QComboBox()
+        self.bitrate_dropdown.addItems([str(b) for b in range(1000, 4500, 500)])
+        layout.addWidget(self.bitrate_dropdown, 3, 1)
+
+        self.verify_check = QCheckBox("Verify stream order after conversion")
+        self.verify_check.setChecked(True)
+        layout.addWidget(self.verify_check, 5, 0, 1, 2)
+
+        self.convert_video_btn = QPushButton("Convert to HEVC")
+        self.convert_video_btn.setStyleSheet("background-color: #add8e6;")
+        self.convert_video_btn.clicked.connect(self.convert_to_hevc)
+        layout.addWidget(self.convert_video_btn, 4, 0)
+
+        self.update_streams_btn = QPushButton("Update Streams")
+        self.update_streams_btn.setStyleSheet("background-color: #90ee90;")
+        self.update_streams_btn.clicked.connect(self.update_streams)
+        layout.addWidget(self.update_streams_btn, 4, 1)
 
         # Track processed directories for cleanup after exiting
         self.processed_dirs = set()
@@ -67,10 +67,9 @@ class StreamSelectorApp:
         # Collect status information for JSON output
         self.status_log = []
 
-        self.convert_video_btn.grid(row=4, column=0, pady=10, sticky="ew")
-        self.update_streams_btn.grid(row=4, column=1, pady=10, sticky="ew")
-        self.exit_btn = tk.Button(self.frame, text="Exit", command=self.quit_app)
-        self.exit_btn.grid(row=6, column=0, columnspan=2, pady=10)
+        self.exit_btn = QPushButton("Exit")
+        self.exit_btn.clicked.connect(self.quit_app)
+        layout.addWidget(self.exit_btn, 6, 0, 1, 2)
 
     def log_status(self, status, input_file=None, output_file=None, message=""):
         entry = {
@@ -110,25 +109,30 @@ class StreamSelectorApp:
         """Prompt the user to commit processed files if any exist."""
         if not self.processed_dirs:
             return
-        if messagebox.askyesno(
+        reply = QMessageBox.question(
+            self,
             "Processing Complete",
             "All work completed. Commit updates to original files?",
-        ):
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if reply == QMessageBox.Yes:
             self.commit_converted_files()
             self.write_status_log()
-            messagebox.showinfo(
-                "Commit Complete", "Converted files have been moved back."
+            QMessageBox.information(
+                self,
+                "Commit Complete",
+                "Converted files have been moved back.",
             )
 
     def quit_app(self):
         """Handle exit button click."""
         self.ask_commit_updates()
-        self.root.quit()
+        QApplication.quit()
 
     def select_path(self):
         from pathlib import Path
 
-        folder = filedialog.askdirectory(title="Select folder with video files")
+        folder = QFileDialog.getExistingDirectory(self, "Select folder with video files")
         if not folder:
             return
 
@@ -214,26 +218,15 @@ class StreamSelectorApp:
             ):
                 default_subtitle = label
 
-        self.audio_var.set(
-            default_audio if default_audio else (audio_options[0] if audio_options else "")
-        )
-        menu = self.audio_dropdown["menu"]
-        menu.delete(0, "end")
-        for opt in audio_options:
-            menu.add_command(
-                label=opt, command=lambda value=opt: self.audio_var.set(value)
-            )
-        self.subtitle_var.set(
-            default_subtitle
-            if default_subtitle
-            else (subtitle_options[0] if subtitle_options else "")
-        )
-        menu = self.subtitle_dropdown["menu"]
-        menu.delete(0, "end")
-        for opt in subtitle_options:
-            menu.add_command(
-                label=opt, command=lambda value=opt: self.subtitle_var.set(value)
-            )
+        self.audio_dropdown.clear()
+        self.audio_dropdown.addItems(audio_options)
+        if default_audio and default_audio in audio_options:
+            self.audio_dropdown.setCurrentIndex(audio_options.index(default_audio))
+
+        self.subtitle_dropdown.clear()
+        self.subtitle_dropdown.addItems(subtitle_options)
+        if default_subtitle and default_subtitle in subtitle_options:
+            self.subtitle_dropdown.setCurrentIndex(subtitle_options.index(default_subtitle))
 
     def convert_to_hevc(self):
         if not getattr(self, "video_files", None):
@@ -298,7 +291,7 @@ class StreamSelectorApp:
                 "-usage",
                 "transcoding",
                 "-b:v",
-                self.bitrate_var.get() + "k",
+                self.bitrate_dropdown.currentText() + "k",
                 output_path,
             ]
 
@@ -328,8 +321,8 @@ class StreamSelectorApp:
             )
             return
 
-        audio = self.audio_var.get()
-        subtitle = self.subtitle_var.get()
+        audio = self.audio_dropdown.currentText()
+        subtitle = self.subtitle_dropdown.currentText()
         if not audio or not subtitle:
             self.log_status(
                 "error",
@@ -420,11 +413,12 @@ class StreamSelectorApp:
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = StreamSelectorApp(root)
-    root.mainloop()
+    qt_app = QApplication(sys.argv)
+    window = StreamSelectorApp()
+    window.show()
+    qt_app.exec_()
 
     # Handle any remaining processed files when the window is closed directly
-    if getattr(app, "processed_dirs", None):
-        app.commit_converted_files()
-        app.write_status_log()
+    if getattr(window, "processed_dirs", None):
+        window.commit_converted_files()
+        window.write_status_log()
