@@ -152,6 +152,8 @@ class StreamSelectorApp:
             messagebox.showwarning("No File", "Please select a folder first.")
             return
 
+        converted_files = []
+
         for input_file in self.video_files:
             try:
                 result = subprocess.run(
@@ -209,12 +211,17 @@ class StreamSelectorApp:
                 subprocess.run(cmd, check=True)
                 self.processed_dirs.add(converted_dir)
                 self.current_file = output_path
-                messagebox.showinfo("Success", "Video converted:\n" + output_path)
+                converted_files.append(output_path)
             except subprocess.CalledProcessError as e:
                 print("FFmpeg error:", e)
                 messagebox.showerror(
                     "Error", f"FFmpeg failed during conversion of {input_file}."
                 )
+
+        if converted_files:
+            messagebox.showinfo(
+                "Success", "Videos converted:\n" + "\n".join(converted_files)
+            )
 
     def update_streams(self):
         if not getattr(self, "video_files", None):
