@@ -10,8 +10,13 @@ class StreamSelectorApp:
     def __init__(self, root):
         self.root = root
         self.root.title("FFmpeg Stream Selector")
+        # Increase default window size for better spacing
+        self.root.geometry("450x300")
         self.frame = tk.Frame(root)
-        self.frame.pack(padx=10, pady=10)
+        self.frame.pack(padx=10, pady=10, fill="both", expand=True)
+        # Allow grid columns to expand proportionally
+        self.frame.columnconfigure(0, weight=1)
+        self.frame.columnconfigure(1, weight=1)
         self.select_file_btn = tk.Button(
             self.frame, text="Select Folder", command=self.select_path
         )
@@ -20,34 +25,40 @@ class StreamSelectorApp:
         self.audio_label.grid(row=1, column=0, sticky="e")
         self.audio_var = tk.StringVar()
         self.audio_dropdown = tk.OptionMenu(self.frame, self.audio_var, "")
-        self.audio_dropdown.grid(row=1, column=1, sticky="w")
+        self.audio_dropdown.grid(row=1, column=1, sticky="ew")
         self.subtitle_label = tk.Label(self.frame, text="Select Subtitle Stream:")
         self.subtitle_label.grid(row=2, column=0, sticky="e")
         self.subtitle_var = tk.StringVar()
         self.subtitle_dropdown = tk.OptionMenu(self.frame, self.subtitle_var, "")
-        self.subtitle_dropdown.grid(row=2, column=1, sticky="w")
+        self.subtitle_dropdown.grid(row=2, column=1, sticky="ew")
 
         self.bitrate_label = tk.Label(self.frame, text="Bitrate (kbps):")
-        self.bitrate_label.grid(row=3, column=0, sticky="w", pady=5)
+        self.bitrate_label.grid(row=3, column=0, sticky="e", pady=5)
         self.bitrate_var = tk.StringVar()
         self.bitrate_var.set("2000")
         self.bitrate_dropdown = tk.OptionMenu(
             self.frame, self.bitrate_var, *[str(b) for b in range(1000, 4500, 500)]
         )
         self.bitrate_dropdown.config(width=10)
-        self.bitrate_dropdown.grid(row=3, column=1, sticky="w", pady=5)
+        self.bitrate_dropdown.grid(row=3, column=1, sticky="ew", pady=5)
         self.verify_var = tk.BooleanVar(value=True)
         self.verify_check = tk.Checkbutton(
             self.frame,
             text="Verify stream order after conversion",
             variable=self.verify_var,
         )
-        self.verify_check.grid(row=6, column=0, columnspan=2, sticky="w")
+        self.verify_check.grid(row=5, column=0, columnspan=2, sticky="w")
         self.convert_video_btn = tk.Button(
-            self.frame, text="Convert to HEVC", command=self.convert_to_hevc
+            self.frame,
+            text="Convert to HEVC",
+            command=self.convert_to_hevc,
+            bg="#add8e6",
         )
         self.update_streams_btn = tk.Button(
-            self.frame, text="Update Streams", command=self.update_streams
+            self.frame,
+            text="Update Streams",
+            command=self.update_streams,
+            bg="#90ee90",
         )
 
         # Track processed directories for cleanup after exiting
@@ -56,10 +67,10 @@ class StreamSelectorApp:
         # Collect status information for JSON output
         self.status_log = []
 
-        self.convert_video_btn.grid(row=4, column=0, pady=10)
-        self.update_streams_btn.grid(row=4, column=1, pady=10)
+        self.convert_video_btn.grid(row=4, column=0, pady=10, sticky="ew")
+        self.update_streams_btn.grid(row=4, column=1, pady=10, sticky="ew")
         self.exit_btn = tk.Button(self.frame, text="Exit", command=self.quit_app)
-        self.exit_btn.grid(row=5, column=0, columnspan=2, pady=10)
+        self.exit_btn.grid(row=6, column=0, columnspan=2, pady=10)
 
     def log_status(self, status, input_file=None, output_file=None, message=""):
         entry = {
