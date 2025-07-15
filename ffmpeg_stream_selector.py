@@ -152,6 +152,7 @@ class StreamSelectorApp:
             messagebox.showwarning("No File", "Please select a folder first.")
             return
 
+        converted_files = []
         for input_file in self.video_files:
             try:
                 result = subprocess.run(
@@ -209,12 +210,18 @@ class StreamSelectorApp:
                 subprocess.run(cmd, check=True)
                 self.processed_dirs.add(converted_dir)
                 self.current_file = output_path
-                messagebox.showinfo("Success", "Video converted:\n" + output_path)
+                converted_files.append(output_path)
             except subprocess.CalledProcessError as e:
                 print("FFmpeg error:", e)
                 messagebox.showerror(
                     "Error", f"FFmpeg failed during conversion of {input_file}."
                 )
+
+        if converted_files:
+            messagebox.showinfo(
+                "Success",
+                "Videos converted:\n" + "\n".join(converted_files),
+            )
 
     def update_streams(self):
         if not getattr(self, "video_files", None):
@@ -232,6 +239,7 @@ class StreamSelectorApp:
         subtitle_index = subtitle.split(" ")[1]
         audio_index = audio.split(" ")[1]
 
+        updated_files = []
         for input_file in self.video_files:
             converted_dir = os.path.join(os.path.dirname(input_file), "converted")
             os.makedirs(converted_dir, exist_ok=True)
@@ -265,12 +273,18 @@ class StreamSelectorApp:
                 subprocess.run(cmd, check=True)
                 self.processed_dirs.add(converted_dir)
                 self.current_file = output_path
-                messagebox.showinfo("Success", "Streams updated:\n" + output_path)
+                updated_files.append(output_path)
             except subprocess.CalledProcessError as e:
                 print("FFmpeg error:", e)
                 messagebox.showerror(
                     "Error", f"FFmpeg failed during stream update for {input_file}."
                 )
+
+        if updated_files:
+            messagebox.showinfo(
+                "Success",
+                "Streams updated:\n" + "\n".join(updated_files),
+            )
 
     def verify_stream_order(self, first_converted_file):
         import subprocess, json
