@@ -164,8 +164,12 @@ class StreamSelectorApp:
     def populate_stream_dropdowns(self, filepath):
         audio_streams = self.run_ffprobe(filepath, "a")
         subtitle_streams = self.run_ffprobe(filepath, "s")
+
         audio_options = []
         subtitle_options = []
+        default_audio = None
+        default_subtitle = None
+
         for stream in audio_streams:
             index = stream.get("index")
             lang = stream.get("tags", {}).get("language", "und")
@@ -174,10 +178,12 @@ class StreamSelectorApp:
             if "forced" in title.lower():
                 label += " [FORCED]"
             if title:
-                label += f" ({title})"
-                label += f" ({title})"
-                label += f" ({title})"
+                label += f" ({title})" * 3
             audio_options.append(label)
+
+            if default_audio is None and lang.lower() == "eng":
+                default_audio = label
+
         for stream in subtitle_streams:
             index = stream.get("index")
             lang = stream.get("tags", {}).get("language", "und")
@@ -186,17 +192,31 @@ class StreamSelectorApp:
             if "forced" in title.lower():
                 label += " [FORCED]"
             if title:
-                label += f" ({title})"
-                label += f" ({title})"
+                label += f" ({title})" * 2
             subtitle_options.append(label)
-        self.audio_var.set(audio_options[0] if audio_options else "")
+
+            title_lower = title.lower()
+            if (
+                default_subtitle is None
+                and lang.lower() == "eng"
+                and ("signs" in title_lower or "forced" in title_lower)
+            ):
+                default_subtitle = label
+
+        self.audio_var.set(
+            default_audio if default_audio else (audio_options[0] if audio_options else "")
+        )
         menu = self.audio_dropdown["menu"]
         menu.delete(0, "end")
         for opt in audio_options:
             menu.add_command(
                 label=opt, command=lambda value=opt: self.audio_var.set(value)
             )
-        self.subtitle_var.set(subtitle_options[0] if subtitle_options else "")
+        self.subtitle_var.set(
+            default_subtitle
+            if default_subtitle
+            else (subtitle_options[0] if subtitle_options else "")
+        )
         menu = self.subtitle_dropdown["menu"]
         menu.delete(0, "end")
         for opt in subtitle_options:
