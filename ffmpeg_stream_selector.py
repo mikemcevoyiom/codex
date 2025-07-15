@@ -33,7 +33,7 @@ class StreamSelectorApp:
         self.subtitle_dropdown.grid(row=2, column=1, sticky="ew")
 
         self.bitrate_label = tk.Label(self.frame, text="Bitrate (kbps):")
-        self.bitrate_label.grid(row=3, column=0, sticky="w", pady=5)
+        self.bitrate_label.grid(row=3, column=0, sticky="e", pady=5)
         self.bitrate_var = tk.StringVar()
         self.bitrate_var.set("2000")
         self.bitrate_dropdown = tk.OptionMenu(
