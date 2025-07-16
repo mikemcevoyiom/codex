@@ -31,42 +31,39 @@ class StreamSelectorApp(QWidget):
 
         self.select_file_btn = QPushButton("Select Folder")
         self.select_file_btn.clicked.connect(self.select_path)
+        # The button will also display the chosen folder path
+        self.select_file_btn.setMinimumHeight(50)
         layout.addWidget(self.select_file_btn, 0, 0, 1, 2)
 
-        self.path_label = QLabel("No folder selected")
-        self.path_label.setWordWrap(True)
-        # Center the folder path label beneath the select button
-        layout.addWidget(self.path_label, 1, 0, 1, 2, alignment=Qt.AlignCenter)
-
         self.audio_label = QLabel("Select Audio Stream:")
-        layout.addWidget(self.audio_label, 2, 0)
+        layout.addWidget(self.audio_label, 1, 0)
         self.audio_dropdown = QComboBox()
-        layout.addWidget(self.audio_dropdown, 2, 1)
+        layout.addWidget(self.audio_dropdown, 1, 1)
 
         self.subtitle_label = QLabel("Select Subtitle Stream:")
-        layout.addWidget(self.subtitle_label, 3, 0)
+        layout.addWidget(self.subtitle_label, 2, 0)
         self.subtitle_dropdown = QComboBox()
-        layout.addWidget(self.subtitle_dropdown, 3, 1)
+        layout.addWidget(self.subtitle_dropdown, 2, 1)
 
         self.bitrate_label = QLabel("Bitrate (kbps):")
-        layout.addWidget(self.bitrate_label, 4, 0)
+        layout.addWidget(self.bitrate_label, 3, 0)
         self.bitrate_dropdown = QComboBox()
         self.bitrate_dropdown.addItems([str(b) for b in range(1000, 4500, 500)])
-        layout.addWidget(self.bitrate_dropdown, 4, 1)
+        layout.addWidget(self.bitrate_dropdown, 3, 1)
 
         self.verify_check = QCheckBox("Verify stream order after conversion")
         self.verify_check.setChecked(True)
-        layout.addWidget(self.verify_check, 6, 0, 1, 2)
+        layout.addWidget(self.verify_check, 5, 0, 1, 2)
 
         self.convert_video_btn = QPushButton("Convert to HEVC")
         self.convert_video_btn.setStyleSheet("background-color: #add8e6;")
         self.convert_video_btn.clicked.connect(self.convert_to_hevc)
-        layout.addWidget(self.convert_video_btn, 5, 0)
+        layout.addWidget(self.convert_video_btn, 4, 0)
 
         self.update_streams_btn = QPushButton("Update Streams")
         self.update_streams_btn.setStyleSheet("background-color: #90ee90;")
         self.update_streams_btn.clicked.connect(self.update_streams)
-        layout.addWidget(self.update_streams_btn, 5, 1)
+        layout.addWidget(self.update_streams_btn, 4, 1)
 
         # Track processed directories for cleanup after exiting
         self.processed_dirs = set()
@@ -76,7 +73,7 @@ class StreamSelectorApp(QWidget):
 
         self.exit_btn = QPushButton("Exit")
         self.exit_btn.clicked.connect(self.quit_app)
-        layout.addWidget(self.exit_btn, 7, 0, 1, 2)
+        layout.addWidget(self.exit_btn, 6, 0, 1, 2)
 
     def log_status(self, status, input_file=None, output_file=None, message=""):
         entry = {
@@ -146,7 +143,9 @@ class StreamSelectorApp(QWidget):
             return
 
         self.selected_folder = folder
-        self.path_label.setText(folder)
+        # Show the selected folder on the button itself
+        self.select_file_btn.setText(f"Select Folder\n{folder}")
+        self.select_file_btn.setToolTip(folder)
 
         self.video_files = sorted(
             [str(f) for f in Path(folder).rglob("*.mkv")]
