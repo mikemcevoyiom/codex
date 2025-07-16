@@ -31,35 +31,39 @@ class StreamSelectorApp(QWidget):
         self.select_file_btn.clicked.connect(self.select_path)
         layout.addWidget(self.select_file_btn, 0, 0, 1, 2)
 
+        self.path_label = QLabel("No folder selected")
+        self.path_label.setWordWrap(True)
+        layout.addWidget(self.path_label, 1, 0, 1, 2)
+
         self.audio_label = QLabel("Select Audio Stream:")
-        layout.addWidget(self.audio_label, 1, 0)
+        layout.addWidget(self.audio_label, 2, 0)
         self.audio_dropdown = QComboBox()
-        layout.addWidget(self.audio_dropdown, 1, 1)
+        layout.addWidget(self.audio_dropdown, 2, 1)
 
         self.subtitle_label = QLabel("Select Subtitle Stream:")
-        layout.addWidget(self.subtitle_label, 2, 0)
+        layout.addWidget(self.subtitle_label, 3, 0)
         self.subtitle_dropdown = QComboBox()
-        layout.addWidget(self.subtitle_dropdown, 2, 1)
+        layout.addWidget(self.subtitle_dropdown, 3, 1)
 
         self.bitrate_label = QLabel("Bitrate (kbps):")
-        layout.addWidget(self.bitrate_label, 3, 0)
+        layout.addWidget(self.bitrate_label, 4, 0)
         self.bitrate_dropdown = QComboBox()
         self.bitrate_dropdown.addItems([str(b) for b in range(1000, 4500, 500)])
-        layout.addWidget(self.bitrate_dropdown, 3, 1)
+        layout.addWidget(self.bitrate_dropdown, 4, 1)
 
         self.verify_check = QCheckBox("Verify stream order after conversion")
         self.verify_check.setChecked(True)
-        layout.addWidget(self.verify_check, 5, 0, 1, 2)
+        layout.addWidget(self.verify_check, 6, 0, 1, 2)
 
         self.convert_video_btn = QPushButton("Convert to HEVC")
         self.convert_video_btn.setStyleSheet("background-color: #add8e6;")
         self.convert_video_btn.clicked.connect(self.convert_to_hevc)
-        layout.addWidget(self.convert_video_btn, 4, 0)
+        layout.addWidget(self.convert_video_btn, 5, 0)
 
         self.update_streams_btn = QPushButton("Update Streams")
         self.update_streams_btn.setStyleSheet("background-color: #90ee90;")
         self.update_streams_btn.clicked.connect(self.update_streams)
-        layout.addWidget(self.update_streams_btn, 4, 1)
+        layout.addWidget(self.update_streams_btn, 5, 1)
 
         # Track processed directories for cleanup after exiting
         self.processed_dirs = set()
@@ -69,7 +73,7 @@ class StreamSelectorApp(QWidget):
 
         self.exit_btn = QPushButton("Exit")
         self.exit_btn.clicked.connect(self.quit_app)
-        layout.addWidget(self.exit_btn, 6, 0, 1, 2)
+        layout.addWidget(self.exit_btn, 7, 0, 1, 2)
 
     def log_status(self, status, input_file=None, output_file=None, message=""):
         entry = {
@@ -132,9 +136,14 @@ class StreamSelectorApp(QWidget):
     def select_path(self):
         from pathlib import Path
 
-        folder = QFileDialog.getExistingDirectory(self, "Select folder with video files")
+        folder = QFileDialog.getExistingDirectory(
+            self, "Select folder with video files"
+        )
         if not folder:
             return
+
+        self.selected_folder = folder
+        self.path_label.setText(folder)
 
         self.video_files = sorted(
             [str(f) for f in Path(folder).rglob("*.mkv")]
@@ -142,8 +151,7 @@ class StreamSelectorApp(QWidget):
         )
         if not self.video_files:
             self.log_status(
-                "error",
-                message="No MKV or MP4 files found in selected folder."
+                "error", message="No MKV or MP4 files found in selected folder."
             )
             return
 
@@ -226,14 +234,13 @@ class StreamSelectorApp(QWidget):
         self.subtitle_dropdown.clear()
         self.subtitle_dropdown.addItems(subtitle_options)
         if default_subtitle and default_subtitle in subtitle_options:
-            self.subtitle_dropdown.setCurrentIndex(subtitle_options.index(default_subtitle))
+            self.subtitle_dropdown.setCurrentIndex(
+                subtitle_options.index(default_subtitle)
+            )
 
     def convert_to_hevc(self):
         if not getattr(self, "video_files", None):
-            self.log_status(
-                "error",
-                message="Please select a folder first."
-            )
+            self.log_status("error", message="Please select a folder first.")
             return
 
         for input_file in self.video_files:
@@ -260,14 +267,12 @@ class StreamSelectorApp(QWidget):
                     self.log_status(
                         "skipped",
                         input_file=input_file,
-                        message=f"Already {codec.upper()}"
+                        message=f"Already {codec.upper()}",
                     )
                     continue
             except Exception as e:
                 self.log_status(
-                    "error",
-                    input_file=input_file,
-                    message=f"Codec check failed: {e}"
+                    "error", input_file=input_file, message=f"Codec check failed: {e}"
                 )
                 continue
 
@@ -313,20 +318,17 @@ class StreamSelectorApp(QWidget):
                 )
 
         self.ask_commit_updates()
+
     def update_streams(self):
         if not getattr(self, "video_files", None):
-            self.log_status(
-                "error",
-                message="Please select a folder first."
-            )
+            self.log_status("error", message="Please select a folder first.")
             return
 
         audio = self.audio_dropdown.currentText()
         subtitle = self.subtitle_dropdown.currentText()
         if not audio or not subtitle:
             self.log_status(
-                "error",
-                message="Please select both audio and subtitle streams."
+                "error", message="Please select both audio and subtitle streams."
             )
             return
 
@@ -380,6 +382,7 @@ class StreamSelectorApp(QWidget):
                 )
 
         self.ask_commit_updates()
+
     def verify_stream_order(self, first_converted_file):
         import subprocess, json
 
