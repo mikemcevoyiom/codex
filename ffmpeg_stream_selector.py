@@ -136,8 +136,9 @@ class StreamSelectorApp(QWidget):
     def select_path(self):
         from pathlib import Path
 
+        default_dir = r"D:\\Video\\unprocessed\\new"
         folder = QFileDialog.getExistingDirectory(
-            self, "Select folder with video files"
+            self, "Select folder with video files", default_dir
         )
         if not folder:
             return
