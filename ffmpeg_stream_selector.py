@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QCheckBox,
 )
+from PyQt5.QtCore import Qt
 import subprocess
 import json
 
@@ -20,7 +21,8 @@ class StreamSelectorApp(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("FFmpeg Stream Selector")
-        self.resize(450, 300)
+        # Increase window size by one third to provide more room for widgets
+        self.resize(600, 400)
 
         layout = QGridLayout()
         self.setLayout(layout)
@@ -29,6 +31,8 @@ class StreamSelectorApp(QWidget):
 
         self.select_file_btn = QPushButton("Select Folder")
         self.select_file_btn.clicked.connect(self.select_path)
+        # The button will also display the chosen folder path
+        self.select_file_btn.setMinimumHeight(50)
         layout.addWidget(self.select_file_btn, 0, 0, 1, 2)
 
         self.audio_label = QLabel("Select Audio Stream:")
@@ -132,9 +136,16 @@ class StreamSelectorApp(QWidget):
     def select_path(self):
         from pathlib import Path
 
-        folder = QFileDialog.getExistingDirectory(self, "Select folder with video files")
+        folder = QFileDialog.getExistingDirectory(
+            self, "Select folder with video files"
+        )
         if not folder:
             return
+
+        self.selected_folder = folder
+        # Show the selected folder on the button itself
+        self.select_file_btn.setText(f"Select Folder\n{folder}")
+        self.select_file_btn.setToolTip(folder)
 
         self.video_files = sorted(
             [str(f) for f in Path(folder).rglob("*.mkv")]
@@ -142,8 +153,7 @@ class StreamSelectorApp(QWidget):
         )
         if not self.video_files:
             self.log_status(
-                "error",
-                message="No MKV or MP4 files found in selected folder."
+                "error", message="No MKV or MP4 files found in selected folder."
             )
             return
 
@@ -226,14 +236,13 @@ class StreamSelectorApp(QWidget):
         self.subtitle_dropdown.clear()
         self.subtitle_dropdown.addItems(subtitle_options)
         if default_subtitle and default_subtitle in subtitle_options:
-            self.subtitle_dropdown.setCurrentIndex(subtitle_options.index(default_subtitle))
+            self.subtitle_dropdown.setCurrentIndex(
+                subtitle_options.index(default_subtitle)
+            )
 
     def convert_to_hevc(self):
         if not getattr(self, "video_files", None):
-            self.log_status(
-                "error",
-                message="Please select a folder first."
-            )
+            self.log_status("error", message="Please select a folder first.")
             return
 
         for input_file in self.video_files:
@@ -260,14 +269,12 @@ class StreamSelectorApp(QWidget):
                     self.log_status(
                         "skipped",
                         input_file=input_file,
-                        message=f"Already {codec.upper()}"
+                        message=f"Already {codec.upper()}",
                     )
                     continue
             except Exception as e:
                 self.log_status(
-                    "error",
-                    input_file=input_file,
-                    message=f"Codec check failed: {e}"
+                    "error", input_file=input_file, message=f"Codec check failed: {e}"
                 )
                 continue
 
@@ -313,20 +320,17 @@ class StreamSelectorApp(QWidget):
                 )
 
         self.ask_commit_updates()
+
     def update_streams(self):
         if not getattr(self, "video_files", None):
-            self.log_status(
-                "error",
-                message="Please select a folder first."
-            )
+            self.log_status("error", message="Please select a folder first.")
             return
 
         audio = self.audio_dropdown.currentText()
         subtitle = self.subtitle_dropdown.currentText()
         if not audio or not subtitle:
             self.log_status(
-                "error",
-                message="Please select both audio and subtitle streams."
+                "error", message="Please select both audio and subtitle streams."
             )
             return
 
@@ -380,6 +384,7 @@ class StreamSelectorApp(QWidget):
                 )
 
         self.ask_commit_updates()
+
     def verify_stream_order(self, first_converted_file):
         import subprocess, json
 
