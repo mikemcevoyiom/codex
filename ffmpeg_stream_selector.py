@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QCheckBox,
 )
+from PyQt5.QtCore import Qt
 import subprocess
 import json
 
@@ -20,7 +21,8 @@ class StreamSelectorApp(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("FFmpeg Stream Selector")
-        self.resize(450, 300)
+        # Increase window size by one third to provide more room for widgets
+        self.resize(600, 400)
 
         layout = QGridLayout()
         self.setLayout(layout)
@@ -33,7 +35,8 @@ class StreamSelectorApp(QWidget):
 
         self.path_label = QLabel("No folder selected")
         self.path_label.setWordWrap(True)
-        layout.addWidget(self.path_label, 1, 0, 1, 2)
+        # Center the folder path label beneath the select button
+        layout.addWidget(self.path_label, 1, 0, 1, 2, alignment=Qt.AlignCenter)
 
         self.audio_label = QLabel("Select Audio Stream:")
         layout.addWidget(self.audio_label, 2, 0)
