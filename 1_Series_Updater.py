@@ -24,13 +24,8 @@ class SeriesUpdater(QWidget):
 
         self.series_button = QPushButton("Find Series")
         self.series_button.setStyleSheet("background-color: #add8e6;")
-        self.series_button.clicked.connect(lambda: self.find_options("series"))
+        self.series_button.clicked.connect(self.find_options)
         layout.addWidget(self.series_button)
-
-        self.movie_button = QPushButton("Find Movies")
-        self.movie_button.setStyleSheet("background-color: #add8e6;")
-        self.movie_button.clicked.connect(lambda: self.find_options("movie"))
-        layout.addWidget(self.movie_button)
 
         self.choice_dropdown = QComboBox()
         self.choice_dropdown.hide()
@@ -49,13 +44,12 @@ class SeriesUpdater(QWidget):
         quit_button.clicked.connect(QApplication.quit)
         layout.addWidget(quit_button)
 
-    def find_options(self, content_type):
+    def find_options(self):
         folder = QFileDialog.getExistingDirectory(self, "Select folder")
         if not folder:
             return
 
         self.selected_folder = folder
-        self.current_type = content_type
         self.folder_label.setText(f"Selected Folder: {folder}")
 
         search_term = os.path.basename(folder)
