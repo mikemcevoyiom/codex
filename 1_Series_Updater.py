@@ -59,7 +59,8 @@ class SeriesUpdater(QWidget):
         self.folder_label.setText(f"Selected Folder: {folder}")
 
         search_term = os.path.basename(folder)
-        db = "TheTVDB" if content_type == "series" else "TheMovieDB"
+        # Use TheMovieDB for both series and movies to avoid TheTVDB failures
+        db = "TheMovieDB"
 
         try:
             cmd = ["filebot", "-list", "--q", search_term, "--db", db]
@@ -80,13 +81,14 @@ class SeriesUpdater(QWidget):
         if not getattr(self, "selected_folder", None):
             return
         selection = self.choice_dropdown.currentText()
-        db = "TheTVDB" if getattr(self, "current_type", "series") == "series" else "TheMovieDB"
+        # Always use TheMovieDB when renaming to ensure consistent results
+        db = "TheMovieDB"
         self.rename_files_in_directory(self.selected_folder, selection, db)
         self.choice_dropdown.hide()
         self.choice_dropdown.clear()
         self.rename_button.setEnabled(False)
 
-    def rename_files_in_directory(self, folder_path, search_name=None, db="TheTVDB"):
+    def rename_files_in_directory(self, folder_path, search_name=None, db="TheMovieDB"):
         try:
             central_output_folder = r"D:\\convert\\anime"
             os.makedirs(central_output_folder, exist_ok=True)
