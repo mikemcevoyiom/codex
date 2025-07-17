@@ -53,17 +53,21 @@ class StreamSelectorApp(QWidget):
 
         self.verify_check = QCheckBox("Verify stream order after conversion")
         self.verify_check.setChecked(True)
-        layout.addWidget(self.verify_check, 5, 0, 1, 2)
-
-        self.convert_video_btn = QPushButton("Convert to HEVC")
-        self.convert_video_btn.setStyleSheet("background-color: #add8e6;")
-        self.convert_video_btn.clicked.connect(self.convert_to_hevc)
-        layout.addWidget(self.convert_video_btn, 4, 0)
+        layout.addWidget(self.verify_check, 6, 0, 1, 2)
 
         self.update_streams_btn = QPushButton("Update Streams")
         self.update_streams_btn.setStyleSheet("background-color: #90ee90;")
         self.update_streams_btn.clicked.connect(self.update_streams)
-        layout.addWidget(self.update_streams_btn, 4, 1)
+        layout.addWidget(self.update_streams_btn, 4, 0, 1, 2)
+
+        self.convert_video_btn = QPushButton("Convert to HEVC")
+        self.convert_video_btn.setStyleSheet("background-color: #add8e6;")
+        self.convert_video_btn.clicked.connect(self.convert_to_hevc)
+        layout.addWidget(self.convert_video_btn, 5, 0, 1, 2)
+
+        self.status_label = QLabel("")
+        self.status_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.status_label, 7, 0, 1, 2)
 
         # Track processed directories for cleanup after exiting
         self.processed_dirs = set()
@@ -73,7 +77,7 @@ class StreamSelectorApp(QWidget):
 
         self.exit_btn = QPushButton("Exit")
         self.exit_btn.clicked.connect(self.quit_app)
-        layout.addWidget(self.exit_btn, 6, 0, 1, 2)
+        layout.addWidget(self.exit_btn, 8, 0, 1, 2)
 
     def log_status(self, status, input_file=None, output_file=None, message=""):
         entry = {
@@ -245,6 +249,11 @@ class StreamSelectorApp(QWidget):
             self.log_status("error", message="Please select a folder first.")
             return
 
+        self.status_label.setText("Converting... please wait")
+        self.convert_video_btn.setEnabled(False)
+        self.update_streams_btn.setEnabled(False)
+        QApplication.processEvents()
+
         for input_file in self.video_files:
             try:
                 result = subprocess.run(
@@ -320,11 +329,19 @@ class StreamSelectorApp(QWidget):
                 )
 
         self.ask_commit_updates()
+        self.status_label.setText("Done")
+        self.convert_video_btn.setEnabled(True)
+        self.update_streams_btn.setEnabled(True)
 
     def update_streams(self):
         if not getattr(self, "video_files", None):
             self.log_status("error", message="Please select a folder first.")
             return
+
+        self.status_label.setText("Updating streams... please wait")
+        self.convert_video_btn.setEnabled(False)
+        self.update_streams_btn.setEnabled(False)
+        QApplication.processEvents()
 
         audio = self.audio_dropdown.currentText()
         subtitle = self.subtitle_dropdown.currentText()
@@ -384,6 +401,9 @@ class StreamSelectorApp(QWidget):
                 )
 
         self.ask_commit_updates()
+        self.status_label.setText("Done")
+        self.convert_video_btn.setEnabled(True)
+        self.update_streams_btn.setEnabled(True)
 
     def verify_stream_order(self, first_converted_file):
         import subprocess, json
