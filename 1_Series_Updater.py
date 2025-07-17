@@ -1,10 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, filedialog
 import os
-import shutil
 import subprocess
-from openpyxl import Workbook
-
 
 def run_code1():
     """Launch a video renamer window."""
@@ -24,23 +21,46 @@ def run_code1():
 
     def rename_files_in_directory(folder_path):
         try:
-            central_output_folder = r'D:\Video\processed'
+            central_output_folder = os.path.join(
+                os.path.expanduser("~"), "Video", "processed"
+            )
 
             if not os.path.exists(central_output_folder):
                 os.makedirs(central_output_folder)
 
             if os.access(central_output_folder, os.W_OK):
-                cmd = (
-                    f'filebot -script fn:amc --output "{central_output_folder}" '
-                    '--action move -non-strict --log-file amc.log --db TheTVDB '
-                    '--def movieFormat="{{ny}}/{{ny}}" '
-                    '--def seriesFormat="{{ny}}/Season {{s}}/{{ny}} - {{s00e00}} - {{t}}" '
-                    '--def animeFormat="{{ny}}/Season {{s}}/{{ny}} - {{s00e00}} - {{t}}" '
-                    '--def skipExtract=y --def minLengthMS=60000 --def clean=y '
-                    '--def deleteAfterExtract=y --def unsorted=y '
-                    f'"{folder_path}"'
-                )
-                os.system(cmd)
+                cmd = [
+                    "filebot",
+                    "-script",
+                    "fn:amc",
+                    "--output",
+                    central_output_folder,
+                    "--action",
+                    "move",
+                    "-non-strict",
+                    "--log-file",
+                    "amc.log",
+                    "--db",
+                    "TheTVDB",
+                    "--def",
+                    "movieFormat={ny}/{ny}",
+                    "--def",
+                    "seriesFormat={ny}/Season {s}/{ny} - {s00e00} - {t}",
+                    "--def",
+                    "animeFormat={ny}/Season {s}/{ny} - {s00e00} - {t}",
+                    "--def",
+                    "skipExtract=y",
+                    "--def",
+                    "minLengthMS=60000",
+                    "--def",
+                    "clean=y",
+                    "--def",
+                    "deleteAfterExtract=y",
+                    "--def",
+                    "unsorted=y",
+                    folder_path,
+                ]
+                subprocess.run(cmd, check=True)
                 result_label.config(text="Renaming complete.")
             else:
                 result_label.config(
