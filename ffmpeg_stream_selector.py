@@ -50,11 +50,8 @@ class StreamSelectorApp(QWidget):
         layout.addWidget(self.bitrate_label, 3, 0)
         self.bitrate_dropdown = QComboBox()
         self.bitrate_dropdown.addItems([str(b) for b in range(1000, 4500, 500)])
+        self.bitrate_dropdown.setCurrentText("2000")
         layout.addWidget(self.bitrate_dropdown, 3, 1)
-
-        self.verify_check = QCheckBox("Verify stream order after conversion")
-        self.verify_check.setChecked(True)
-        layout.addWidget(self.verify_check, 6, 0, 1, 2)
 
         self.update_streams_btn = QPushButton("Update Streams")
         self.update_streams_btn.setStyleSheet("background-color: #90ee90;")
@@ -69,11 +66,11 @@ class StreamSelectorApp(QWidget):
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 0)
         self.progress_bar.hide()
-        layout.addWidget(self.progress_bar, 7, 0, 1, 2)
+        layout.addWidget(self.progress_bar, 6, 0, 1, 2)
 
         self.status_label = QLabel("")
         self.status_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.status_label, 8, 0, 1, 2)
+        layout.addWidget(self.status_label, 7, 0, 1, 2)
 
         # Track processed directories for cleanup after exiting
         self.processed_dirs = set()
@@ -83,7 +80,7 @@ class StreamSelectorApp(QWidget):
 
         self.exit_btn = QPushButton("Exit")
         self.exit_btn.clicked.connect(self.quit_app)
-        layout.addWidget(self.exit_btn, 9, 0, 1, 2)
+        layout.addWidget(self.exit_btn, 8, 0, 1, 2)
 
     def log_status(self, status, input_file=None, output_file=None, message=""):
         entry = {
@@ -147,7 +144,9 @@ class StreamSelectorApp(QWidget):
         from pathlib import Path
 
         folder = QFileDialog.getExistingDirectory(
-            self, "Select folder with video files"
+            self,
+            "Select folder with video files",
+            r"D:\\Video\\unprocessed\\new",
         )
         if not folder:
             return
@@ -198,18 +197,15 @@ class StreamSelectorApp(QWidget):
 
     def parse_ffmpeg_progress(self, line):
         fps = None
-        size = None
         time_pos = None
-        if "fps=" in line or "size=" in line or "Lsize=" in line:
+        if "fps=" in line or "time=" in line:
             parts = line.strip().split()
             for part in parts:
                 if part.startswith("fps="):
                     fps = part.split("=", 1)[1]
                 elif part.startswith("time="):
                     time_pos = part.split("=", 1)[1]
-                elif part.startswith("size=") or part.startswith("Lsize="):
-                    size = part.split("=", 1)[1]
-        return fps, size, time_pos
+        return fps, time_pos
 
     def populate_stream_dropdowns(self, filepath):
         audio_streams = self.run_ffprobe(filepath, "a")
@@ -338,10 +334,10 @@ class StreamSelectorApp(QWidget):
                     cmd, stderr=subprocess.PIPE, text=True
                 )
                 for line in process.stderr:
-                    fps, size, time_pos = self.parse_ffmpeg_progress(line)
-                    if fps or size or time_pos:
+                    fps, time_pos = self.parse_ffmpeg_progress(line)
+                    if fps or time_pos:
                         self.status_label.setText(
-                            f"fps: {fps} size: {size} time: {time_pos}"
+                            f"fps: {fps} time: {time_pos}"
                         )
                         QApplication.processEvents()
                 ret = process.wait()
@@ -425,10 +421,10 @@ class StreamSelectorApp(QWidget):
                     cmd, stderr=subprocess.PIPE, text=True
                 )
                 for line in process.stderr:
-                    fps, size, time_pos = self.parse_ffmpeg_progress(line)
-                    if fps or size or time_pos:
+                    fps, time_pos = self.parse_ffmpeg_progress(line)
+                    if fps or time_pos:
                         self.status_label.setText(
-                            f"fps: {fps} size: {size} time: {time_pos}"
+                            f"fps: {fps} time: {time_pos}"
                         )
                         QApplication.processEvents()
                 ret = process.wait()
@@ -455,37 +451,6 @@ class StreamSelectorApp(QWidget):
         self.progress_bar.hide()
         self.convert_video_btn.setEnabled(True)
         self.update_streams_btn.setEnabled(True)
-
-    def verify_stream_order(self, first_converted_file):
-        import subprocess, json
-
-        try:
-            cmd = [
-                "ffprobe",
-                "-v",
-                "error",
-                "-show_streams",
-                "-select_streams",
-                "v:a:s",
-                "-of",
-                "json",
-                first_converted_file,
-            ]
-            result = subprocess.run(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            data = json.loads(result.stdout)
-            expected_order = ["video", "audio", "subtitle"]
-            actual_order = {
-                s["index"]: s["codec_type"] for s in data.get("streams", [])
-            }
-            for idx, expected_type in enumerate(expected_order):
-                if actual_order.get(idx) != expected_type:
-                    return False
-            return True
-        except Exception as e:
-            print(f"Verification error: {e}")
-            return False
 
 
 if __name__ == "__main__":
