@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QComboBox,
     QCheckBox,
+    QProgressBar,
 )
 from PyQt5.QtCore import Qt
 import subprocess
@@ -65,9 +66,14 @@ class StreamSelectorApp(QWidget):
         self.convert_video_btn.clicked.connect(self.convert_to_hevc)
         layout.addWidget(self.convert_video_btn, 5, 0, 1, 2)
 
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 0)
+        self.progress_bar.hide()
+        layout.addWidget(self.progress_bar, 7, 0, 1, 2)
+
         self.status_label = QLabel("")
         self.status_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.status_label, 7, 0, 1, 2)
+        layout.addWidget(self.status_label, 8, 0, 1, 2)
 
         # Track processed directories for cleanup after exiting
         self.processed_dirs = set()
@@ -77,7 +83,7 @@ class StreamSelectorApp(QWidget):
 
         self.exit_btn = QPushButton("Exit")
         self.exit_btn.clicked.connect(self.quit_app)
-        layout.addWidget(self.exit_btn, 8, 0, 1, 2)
+        layout.addWidget(self.exit_btn, 9, 0, 1, 2)
 
     def log_status(self, status, input_file=None, output_file=None, message=""):
         entry = {
@@ -190,6 +196,21 @@ class StreamSelectorApp(QWidget):
             print(f"ffprobe failed for stream type '{stream_type}':", e)
             return []
 
+    def parse_ffmpeg_progress(self, line):
+        fps = None
+        size = None
+        time_pos = None
+        if "fps=" in line or "size=" in line or "Lsize=" in line:
+            parts = line.strip().split()
+            for part in parts:
+                if part.startswith("fps="):
+                    fps = part.split("=", 1)[1]
+                elif part.startswith("time="):
+                    time_pos = part.split("=", 1)[1]
+                elif part.startswith("size=") or part.startswith("Lsize="):
+                    size = part.split("=", 1)[1]
+        return fps, size, time_pos
+
     def populate_stream_dropdowns(self, filepath):
         audio_streams = self.run_ffprobe(filepath, "a")
         subtitle_streams = self.run_ffprobe(filepath, "s")
@@ -250,6 +271,7 @@ class StreamSelectorApp(QWidget):
             return
 
         self.status_label.setText("Converting... please wait")
+        self.progress_bar.show()
         self.convert_video_btn.setEnabled(False)
         self.update_streams_btn.setEnabled(False)
         QApplication.processEvents()
@@ -312,14 +334,27 @@ class StreamSelectorApp(QWidget):
             ]
 
             try:
-                subprocess.run(cmd, check=True)
-                self.processed_dirs.add(converted_dir)
-                self.current_file = output_path
-                self.log_status(
-                    "converted",
-                    input_file=input_file,
-                    output_file=output_path,
+                process = subprocess.Popen(
+                    cmd, stderr=subprocess.PIPE, text=True
                 )
+                for line in process.stderr:
+                    fps, size, time_pos = self.parse_ffmpeg_progress(line)
+                    if fps or size or time_pos:
+                        self.status_label.setText(
+                            f"fps: {fps} size: {size} time: {time_pos}"
+                        )
+                        QApplication.processEvents()
+                ret = process.wait()
+                if ret == 0:
+                    self.processed_dirs.add(converted_dir)
+                    self.current_file = output_path
+                    self.log_status(
+                        "converted",
+                        input_file=input_file,
+                        output_file=output_path,
+                    )
+                else:
+                    raise subprocess.CalledProcessError(ret, cmd)
             except subprocess.CalledProcessError as e:
                 print("FFmpeg error:", e)
                 self.log_status(
@@ -330,6 +365,7 @@ class StreamSelectorApp(QWidget):
 
         self.ask_commit_updates()
         self.status_label.setText("Done")
+        self.progress_bar.hide()
         self.convert_video_btn.setEnabled(True)
         self.update_streams_btn.setEnabled(True)
 
@@ -339,6 +375,7 @@ class StreamSelectorApp(QWidget):
             return
 
         self.status_label.setText("Updating streams... please wait")
+        self.progress_bar.show()
         self.convert_video_btn.setEnabled(False)
         self.update_streams_btn.setEnabled(False)
         QApplication.processEvents()
@@ -384,14 +421,27 @@ class StreamSelectorApp(QWidget):
             ]
 
             try:
-                subprocess.run(cmd, check=True)
-                self.processed_dirs.add(converted_dir)
-                self.current_file = output_path
-                self.log_status(
-                    "streams_updated",
-                    input_file=input_file,
-                    output_file=output_path,
+                process = subprocess.Popen(
+                    cmd, stderr=subprocess.PIPE, text=True
                 )
+                for line in process.stderr:
+                    fps, size, time_pos = self.parse_ffmpeg_progress(line)
+                    if fps or size or time_pos:
+                        self.status_label.setText(
+                            f"fps: {fps} size: {size} time: {time_pos}"
+                        )
+                        QApplication.processEvents()
+                ret = process.wait()
+                if ret == 0:
+                    self.processed_dirs.add(converted_dir)
+                    self.current_file = output_path
+                    self.log_status(
+                        "streams_updated",
+                        input_file=input_file,
+                        output_file=output_path,
+                    )
+                else:
+                    raise subprocess.CalledProcessError(ret, cmd)
             except subprocess.CalledProcessError as e:
                 print("FFmpeg error:", e)
                 self.log_status(
@@ -402,6 +452,7 @@ class StreamSelectorApp(QWidget):
 
         self.ask_commit_updates()
         self.status_label.setText("Done")
+        self.progress_bar.hide()
         self.convert_video_btn.setEnabled(True)
         self.update_streams_btn.setEnabled(True)
 
