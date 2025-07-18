@@ -52,3 +52,41 @@ Each log is written to the `Video_Convert` bucket with a measurement name
 matching the JSON filename (for example `convert` or `streams`). Once uploaded,
 add InfluxDB as a data source in Grafana and build dashboards from those
 measurements.
+
+## Upload results to PostgreSQL
+
+If you prefer storing the logs in PostgreSQL instead of InfluxDB, use the
+`upload_to_postgres.py` script. The script reads `convert.json` and
+`streams.json` from your `~/Documents` directory and inserts each entry into
+`convert_log` and `streams_log` tables.
+
+1. Install the PostgreSQL driver:
+
+   ```bash
+   pip install psycopg2-binary
+   ```
+
+2. Create a database on your PostgreSQL server (replace credentials as
+   required):
+
+   ```bash
+   psql -h 192.168.1.28 -U postgres -c "CREATE DATABASE video_convert;"
+   ```
+
+3. Export connection details so the script can reach your instance:
+
+   ```bash
+   export POSTGRES_HOST=192.168.1.28
+   export POSTGRES_DB=video_convert
+   export POSTGRES_USER=postgres    # update if needed
+   export POSTGRES_PASSWORD=secret  # update if needed
+   ```
+
+4. Run the uploader:
+
+   ```bash
+   python upload_to_postgres.py
+   ```
+
+The script will create the `convert_log` and `streams_log` tables if they do not
+already exist and then insert all records from the JSON logs.
