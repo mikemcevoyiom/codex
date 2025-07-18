@@ -40,20 +40,19 @@ def main():
         raise RuntimeError("INFLUX_TOKEN environment variable is not set")
 
     with InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG) as client:
-        write_api = client.write_api(
+        with client.write_api(
             write_options=WriteOptions(batch_size=1, flush_interval=1000)
-        )
-
-        for fname in STATUS_FILES:
-            path = DOCUMENTS_DIR / fname
-            entries = load_entries(path)
-            if not entries:
-                continue
-            measurement = Path(fname).stem
-            send_entries(entries, measurement, write_api)
-            print(
-                f"Uploaded {len(entries)} records from {fname} to {INFLUX_BUCKET}"
-            )
+        ) as write_api:
+            for fname in STATUS_FILES:
+                path = DOCUMENTS_DIR / fname
+                entries = load_entries(path)
+                if not entries:
+                    continue
+                measurement = Path(fname).stem
+                send_entries(entries, measurement, write_api)
+                print(
+                    f"Uploaded {len(entries)} records from {fname} to {INFLUX_BUCKET}"
+                )
 
 
 if __name__ == "__main__":
