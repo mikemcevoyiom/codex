@@ -33,3 +33,26 @@ before and after processing:
   "after_size": 9876543
 }
 ```
+
+## Upload results to InfluxDB
+
+You can push the `conversion_status.json` log into InfluxDB for reporting with Grafana.
+
+1. Install the InfluxDB Python client:
+   ```bash
+   pip install influxdb-client
+   ```
+2. Export your connection details. The token can be stored in the `INFLUX_TOKEN` environment variable:
+   ```bash
+   export INFLUX_TOKEN=SC2OJktMgeOAQGjAxCx3NmNvq4_-CgEQoQiW7hST0TZiOt8q-zZA7MY-3X5VV3uJlB7DXbEnwCP7C95LhHAB1g==
+   export INFLUX_URL=http://192.168.1.28:8086
+   export INFLUX_ORG=my-org  # replace with your organization
+   ```
+3. Run the uploader script:
+   ```bash
+   python upload_to_influxdb.py
+   ```
+
+The script writes each entry to the `Video_Convert` bucket using the
+`video_conversion` measurement. Once uploaded, add InfluxDB as a data source in
+Grafana and build dashboards from that measurement.
