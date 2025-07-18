@@ -18,30 +18,18 @@ folder:
 * **Update Streams** – remuxes the chosen audio and subtitle streams while
   keeping the video stream as is.
 
-After processing, a `conversion_status.json` file is saved to your
-`~/Documents` folder. Each entry in this log includes the codec and file size
-before and after processing:
+After processing, two log files are written to your `~/Documents` folder:
 
-```json
-{
-  "status": "converted",
-  "input": "original.mkv",
-  "output": "converted/original.mkv",
-  "before_codec": "h264",
-  "after_codec": "hevc",
-  "before_size": 12345678,
-  "after_size": 9876543
-}
-```
+- `convert.json` – details of any HEVC conversions
+- `streams.json` – summaries of selected audio and subtitle streams
 
 ## Upload results to InfluxDB
 
-You can push the `conversion_status.json` log into InfluxDB for reporting with Grafana.  
-Recent updates also generate `convert.json` and `streams.json`. These files
-summarise HEVC conversions and stream selections respectively. The uploader
-now reads all three logs and writes them to InfluxDB using a measurement name
-matching the JSON filename. Each entry's `time` value is parsed as the
-timestamp for that record.
+When you exit the application, the logs are automatically uploaded to InfluxDB
+using `upload_to_influxdb.py`. You can also run this script manually if
+needed. It reads `convert.json` and `streams.json` and writes each entry using
+the filename stem as the measurement name. Each record's `time` field is used
+as the timestamp if present.
 
 1. Install the InfluxDB Python client:
    ```bash
@@ -53,8 +41,8 @@ timestamp for that record.
    export INFLUX_URL=http://192.168.1.28:8086
  export INFLUX_ORG=my-org  # replace with your organization
   ```
-3. Run the uploader script manually, or let the application call it
-   automatically after each HEVC conversion:
+3. Run the uploader script manually, or simply exit the application to trigger
+   an automatic upload:
   ```bash
   python upload_to_influxdb.py
   ```
