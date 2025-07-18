@@ -215,6 +215,37 @@ class StreamSelectorApp(QWidget):
                     time_pos = part.split("=", 1)[1]
         return fps, time_pos
 
+    def get_duration(self, filepath):
+        """Return the duration of the input file in seconds."""
+        try:
+            result = subprocess.run(
+                [
+                    "ffprobe",
+                    "-v",
+                    "error",
+                    "-show_entries",
+                    "format=duration",
+                    "-of",
+                    "default=noprint_wrappers=1:nokey=1",
+                    filepath,
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            return float(result.stdout.strip())
+        except Exception as e:
+            print(f"ffprobe duration error for {filepath}:", e)
+            return None
+
+    def time_to_seconds(self, time_str):
+        """Convert an HH:MM:SS.xxx time string to seconds."""
+        try:
+            h, m, s = time_str.split(":")
+            return int(h) * 3600 + int(m) * 60 + float(s)
+        except Exception:
+            return None
+
     def populate_stream_dropdowns(self, filepath):
         audio_streams = self.run_ffprobe(filepath, "a")
         subtitle_streams = self.run_ffprobe(filepath, "s")
@@ -275,7 +306,7 @@ class StreamSelectorApp(QWidget):
             return
 
         self.status_label.setText("Converting... please wait")
-        self.progress_bar.setRange(0, len(self.video_files))
+        self.progress_bar.setRange(0, len(self.video_files) * 100)
         self.progress_bar.setValue(0)
         self.progress_bar.show()
         self.convert_video_btn.setEnabled(False)
@@ -283,6 +314,7 @@ class StreamSelectorApp(QWidget):
         QApplication.processEvents()
 
         for idx, input_file in enumerate(self.video_files, start=1):
+            duration = self.get_duration(input_file)
             try:
                 result = subprocess.run(
                     [
@@ -349,6 +381,13 @@ class StreamSelectorApp(QWidget):
                         self.status_label.setText(
                             f"fps: {fps} time: {time_pos}"
                         )
+                        if duration and time_pos:
+                            secs = self.time_to_seconds(time_pos)
+                            if secs is not None:
+                                progress = min(secs / duration, 1.0)
+                                self.progress_bar.setValue(
+                                    int((idx - 1 + progress) * 100)
+                                )
                         QApplication.processEvents()
                 ret = process.wait()
                 if ret == 0:
@@ -369,7 +408,7 @@ class StreamSelectorApp(QWidget):
                     message="FFmpeg failed during conversion",
                 )
 
-            self.progress_bar.setValue(idx)
+            self.progress_bar.setValue(idx * 100)
             QApplication.processEvents()
 
         self.ask_commit_updates()
@@ -384,7 +423,7 @@ class StreamSelectorApp(QWidget):
             return
 
         self.status_label.setText("Updating streams... please wait")
-        self.progress_bar.setRange(0, len(self.video_files))
+        self.progress_bar.setRange(0, len(self.video_files) * 100)
         self.progress_bar.setValue(0)
         self.progress_bar.show()
         self.convert_video_btn.setEnabled(False)
@@ -403,6 +442,7 @@ class StreamSelectorApp(QWidget):
         audio_index = audio.split(" ")[1]
 
         for idx, input_file in enumerate(self.video_files, start=1):
+            duration = self.get_duration(input_file)
             converted_dir = os.path.join(os.path.dirname(input_file), "converted")
             os.makedirs(converted_dir, exist_ok=True)
             output_path = os.path.join(converted_dir, os.path.basename(input_file))
@@ -441,6 +481,13 @@ class StreamSelectorApp(QWidget):
                         self.status_label.setText(
                             f"fps: {fps} time: {time_pos}"
                         )
+                        if duration and time_pos:
+                            secs = self.time_to_seconds(time_pos)
+                            if secs is not None:
+                                progress = min(secs / duration, 1.0)
+                                self.progress_bar.setValue(
+                                    int((idx - 1 + progress) * 100)
+                                )
                         QApplication.processEvents()
                 ret = process.wait()
                 if ret == 0:
@@ -461,7 +508,7 @@ class StreamSelectorApp(QWidget):
                     message="FFmpeg failed during stream update",
                 )
 
-            self.progress_bar.setValue(idx)
+            self.progress_bar.setValue(idx * 100)
             QApplication.processEvents()
 
         self.ask_commit_updates()
