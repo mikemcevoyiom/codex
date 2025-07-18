@@ -38,7 +38,7 @@ as the timestamp if present.
 2. Export your connection details. The token can be stored in the `INFLUX_TOKEN` environment variable:
    ```bash
    export INFLUX_TOKEN=SC2OJktMgeOAQGjAxCx3NmNvq4_-CgEQoQiW7hST0TZiOt8q-zZA7MY-3X5VV3uJlB7DXbEnwCP7C95LhHAB1g==
-   export INFLUX_URL=http://192.168.1.28:8086
+   export INFLUX_HOST=http://192.168.1.28:8086
  export INFLUX_ORG=my-org  # replace with your organization
   ```
 3. Run the uploader script manually, or simply exit the application to trigger
