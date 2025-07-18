@@ -16,6 +16,18 @@ STATUS_FILES = [
 ]
 
 
+def find_status_file(name: str) -> Path:
+    """Return the path to a status file regardless of case."""
+    path = DOCUMENTS_DIR / name
+    if path.exists():
+        return path
+    lower = name.lower()
+    for candidate in DOCUMENTS_DIR.glob("*.json"):
+        if candidate.name.lower() == lower:
+            return candidate
+    return path
+
+
 def load_entries(path):
     if not path.exists():
         print(f"Status log {path} not found")
@@ -49,9 +61,10 @@ def main():
             write_options=WriteOptions(batch_size=1, flush_interval=1000)
         ) as write_api:
             for fname in STATUS_FILES:
-                path = DOCUMENTS_DIR / fname
+                path = find_status_file(fname)
                 entries = load_entries(path)
                 if not entries:
+                    print(f"No entries found in {path}")
                     continue
                 measurement = Path(fname).stem
                 send_entries(entries, measurement, write_api)
