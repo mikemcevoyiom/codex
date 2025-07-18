@@ -11,7 +11,6 @@ INFLUX_TOKEN = os.getenv("INFLUX_TOKEN")
 
 DOCUMENTS_DIR = Path.home() / "Documents"
 STATUS_FILES = [
-    "conversion_status.json",
     "convert.json",
     "streams.json",
 ]

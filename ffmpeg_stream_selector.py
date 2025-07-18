@@ -96,6 +96,9 @@ class StreamSelectorApp(QWidget):
         self.exit_btn.clicked.connect(self.quit_app)
         layout.addWidget(self.exit_btn, 8, 0, 1, 2)
 
+        # Track whether the exit button was used to close the app
+        self.exit_clicked = False
+
     def log_status(
         self,
         status,
@@ -141,12 +144,6 @@ class StreamSelectorApp(QWidget):
                 print(f"Could not remove {conv_dir} — it may not be empty.")
         self.processed_dirs.clear()
 
-    def write_status_log(self):
-        """Write collected status information to a JSON file in ~/Documents."""
-        documents_dir = Path.home() / "Documents"
-        documents_dir.mkdir(parents=True, exist_ok=True)
-        with open(documents_dir / "conversion_status.json", "w", encoding="utf-8") as f:
-            json.dump(self.status_log, f, indent=2)
 
     def write_convert_log(self):
         """Write convert_to_hevc results to ~/Documents/convert.json."""
@@ -174,13 +171,6 @@ class StreamSelectorApp(QWidget):
         )
         if reply == QMessageBox.Yes:
             self.commit_converted_files()
-            self.write_status_log()
-            try:
-                import upload_to_influxdb
-
-                upload_to_influxdb.main()
-            except Exception as e:
-                print(f"Influx upload failed: {e}")
             QMessageBox.information(
                 self,
                 "Commit Complete",
@@ -189,7 +179,16 @@ class StreamSelectorApp(QWidget):
 
     def quit_app(self):
         """Handle exit button click."""
+        self.exit_clicked = True
         self.ask_commit_updates()
+        self.write_convert_log()
+        self.write_streams_log()
+        try:
+            import upload_to_influxdb
+
+            upload_to_influxdb.main()
+        except Exception as e:
+            print(f"Influx upload failed: {e}")
         QApplication.quit()
 
     def select_path(self):
@@ -657,10 +656,10 @@ if __name__ == "__main__":
     window.show()
     qt_app.exec_()
 
-    # Handle any remaining processed files when the window is closed directly
-    if getattr(window, "processed_dirs", None):
-        window.commit_converted_files()
-        window.write_status_log()
+    # Handle cleanup when the window is closed directly without using the exit button
+    if not getattr(window, "exit_clicked", False):
+        if getattr(window, "processed_dirs", None):
+            window.commit_converted_files()
         window.write_convert_log()
         window.write_streams_log()
         try:
