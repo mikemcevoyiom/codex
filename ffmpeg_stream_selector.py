@@ -1,6 +1,14 @@
 from pathlib import Path
 import os
 import sys
+
+# Default directory used when no folder is selected. Users can override
+# this path with the STREAM_SELECTOR_DIR environment variable. The default
+# falls back to a "videos/unprocessed/new" directory in the user's home
+# folder to work across operating systems.
+DEFAULT_VIDEO_DIR = Path(
+    os.getenv("STREAM_SELECTOR_DIR", Path.home() / "videos" / "unprocessed" / "new")
+)
 from PyQt5.QtWidgets import (
     QApplication,
     QWidget,
@@ -111,7 +119,7 @@ class StreamSelectorApp(QWidget):
 
     def write_status_log(self):
         """Write collected status information to a JSON file."""
-        output_dir = Path(r"D:\Video\unprocessed\new")
+        output_dir = DEFAULT_VIDEO_DIR
         output_dir.mkdir(parents=True, exist_ok=True)
         with open(output_dir / "conversion_status.json", "w", encoding="utf-8") as f:
             json.dump(self.status_log, f, indent=2)
@@ -146,7 +154,7 @@ class StreamSelectorApp(QWidget):
         folder = QFileDialog.getExistingDirectory(
             self,
             "Select folder with video files",
-            r"D:\\Video\\unprocessed\\new",
+            str(DEFAULT_VIDEO_DIR),
         )
         if not folder:
             return

@@ -5,6 +5,10 @@ subtitle streams in video files and optionally converting the video stream to
 HEVC using FFmpeg. PyQt allows more customizable widgets, including styled
 buttons.
 
+By default the script opens a directory located at `videos/unprocessed/new`
+within your home folder. You can specify a different location by setting the
+`STREAM_SELECTOR_DIR` environment variable before running the application.
+
 After launching the script, choose a folder containing your videos. Two buttons
 are available and each operation will be applied to every video in the selected
 folder:
