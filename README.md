@@ -36,7 +36,12 @@ before and after processing:
 
 ## Upload results to InfluxDB
 
-You can push the `conversion_status.json` log into InfluxDB for reporting with Grafana.
+You can push the `conversion_status.json` log into InfluxDB for reporting with Grafana.  
+Recent updates also generate `convert.json` and `streams.json`. These files
+summarise HEVC conversions and stream selections respectively. The uploader
+now reads all three logs and writes them to InfluxDB using a measurement name
+matching the JSON filename. Each entry's `time` value is parsed as the
+timestamp for that record.
 
 1. Install the InfluxDB Python client:
    ```bash
@@ -54,6 +59,7 @@ You can push the `conversion_status.json` log into InfluxDB for reporting with G
   python upload_to_influxdb.py
   ```
 
-The script writes each entry to the `Video_Convert` bucket using the
-`video_conversion` measurement. Once uploaded, add InfluxDB as a data source in
-Grafana and build dashboards from that measurement.
+Each log is written to the `Video_Convert` bucket with a measurement name
+matching the JSON filename (for example `convert` or `streams`). Once uploaded,
+add InfluxDB as a data source in Grafana and build dashboards from those
+measurements.
