@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from influxdb_client import InfluxDBClient, Point, WriteOptions
 
-INFLUX_URL = os.getenv("INFLUX_URL", "http://192.168.1.28:8086")
+INFLUX_HOST = os.getenv("INFLUX_HOST", "http://192.168.1.28:8086")
 INFLUX_BUCKET = "Video_Convert"
 INFLUX_ORG = os.getenv("INFLUX_ORG", "my-org")
 INFLUX_TOKEN = os.getenv("INFLUX_TOKEN")
@@ -14,6 +14,18 @@ STATUS_FILES = [
     "convert.json",
     "streams.json",
 ]
+
+
+def find_status_file(name: str) -> Path:
+    """Return the path to a status file regardless of case."""
+    path = DOCUMENTS_DIR / name
+    if path.exists():
+        return path
+    lower = name.lower()
+    for candidate in DOCUMENTS_DIR.glob("*.json"):
+        if candidate.name.lower() == lower:
+            return candidate
+    return path
 
 
 def load_entries(path):
@@ -40,18 +52,29 @@ def send_entries(entries, measurement, write_api):
         write_api.write(bucket=INFLUX_BUCKET, record=point)
 
 
-def main():
+def check_connection(client: InfluxDBClient) -> None:
+    """Verify InfluxDB is reachable before uploading."""
+    try:
+        if client.ping():
+            print(f"Connected to {INFLUX_HOST}")
+            return
+    except Exception as exc:  # noqa: PERF203
+        raise RuntimeError(f"Cannot reach InfluxDB at {INFLUX_HOST}: {exc}")
+    raise RuntimeError(f"InfluxDB ping to {INFLUX_HOST} failed")
+
+
+def main() -> None:
     if not INFLUX_TOKEN:
         raise RuntimeError("INFLUX_TOKEN environment variable is not set")
 
-    with InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG) as client:
-        with client.write_api(
-            write_options=WriteOptions(batch_size=1, flush_interval=1000)
-        ) as write_api:
+    with InfluxDBClient(url=INFLUX_HOST, token=INFLUX_TOKEN, org=INFLUX_ORG) as client:
+        check_connection(client)
+        with client.write_api(write_options=WriteOptions(batch_size=1, flush_interval=1000)) as write_api:
             for fname in STATUS_FILES:
-                path = DOCUMENTS_DIR / fname
+                path = find_status_file(fname)
                 entries = load_entries(path)
                 if not entries:
+                    print(f"No entries found in {path}")
                     continue
                 measurement = Path(fname).stem
                 send_entries(entries, measurement, write_api)
