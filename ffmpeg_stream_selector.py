@@ -138,10 +138,10 @@ class StreamSelectorApp(QWidget):
         self.processed_dirs.clear()
 
     def write_status_log(self):
-        """Write collected status information to a JSON file."""
-        output_dir = DEFAULT_VIDEO_DIR
-        output_dir.mkdir(parents=True, exist_ok=True)
-        with open(output_dir / "conversion_status.json", "w", encoding="utf-8") as f:
+        """Write collected status information to a JSON file in ~/Documents."""
+        documents_dir = Path.home() / "Documents"
+        documents_dir.mkdir(parents=True, exist_ok=True)
+        with open(documents_dir / "conversion_status.json", "w", encoding="utf-8") as f:
             json.dump(self.status_log, f, indent=2)
 
     def ask_commit_updates(self):
