@@ -275,12 +275,14 @@ class StreamSelectorApp(QWidget):
             return
 
         self.status_label.setText("Converting... please wait")
+        self.progress_bar.setRange(0, len(self.video_files))
+        self.progress_bar.setValue(0)
         self.progress_bar.show()
         self.convert_video_btn.setEnabled(False)
         self.update_streams_btn.setEnabled(False)
         QApplication.processEvents()
 
-        for input_file in self.video_files:
+        for idx, input_file in enumerate(self.video_files, start=1):
             try:
                 result = subprocess.run(
                     [
@@ -367,6 +369,9 @@ class StreamSelectorApp(QWidget):
                     message="FFmpeg failed during conversion",
                 )
 
+            self.progress_bar.setValue(idx)
+            QApplication.processEvents()
+
         self.ask_commit_updates()
         self.status_label.setText("Done")
         self.progress_bar.hide()
@@ -379,6 +384,8 @@ class StreamSelectorApp(QWidget):
             return
 
         self.status_label.setText("Updating streams... please wait")
+        self.progress_bar.setRange(0, len(self.video_files))
+        self.progress_bar.setValue(0)
         self.progress_bar.show()
         self.convert_video_btn.setEnabled(False)
         self.update_streams_btn.setEnabled(False)
@@ -395,7 +402,7 @@ class StreamSelectorApp(QWidget):
         subtitle_index = subtitle.split(" ")[1]
         audio_index = audio.split(" ")[1]
 
-        for input_file in self.video_files:
+        for idx, input_file in enumerate(self.video_files, start=1):
             converted_dir = os.path.join(os.path.dirname(input_file), "converted")
             os.makedirs(converted_dir, exist_ok=True)
             output_path = os.path.join(converted_dir, os.path.basename(input_file))
@@ -453,6 +460,9 @@ class StreamSelectorApp(QWidget):
                     input_file=input_file,
                     message="FFmpeg failed during stream update",
                 )
+
+            self.progress_bar.setValue(idx)
+            QApplication.processEvents()
 
         self.ask_commit_updates()
         self.status_label.setText("Done")
