@@ -24,6 +24,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 import subprocess
 import json
+from datetime import datetime
 
 
 class StreamSelectorApp(QWidget):
@@ -87,6 +88,9 @@ class StreamSelectorApp(QWidget):
 
         # Collect status information for JSON output
         self.status_log = []
+        # Separate logs for conversion and stream updates
+        self.convert_log = []
+        self.streams_log = []
 
         self.exit_btn = QPushButton("Exit")
         self.exit_btn.clicked.connect(self.quit_app)
@@ -143,6 +147,20 @@ class StreamSelectorApp(QWidget):
         documents_dir.mkdir(parents=True, exist_ok=True)
         with open(documents_dir / "conversion_status.json", "w", encoding="utf-8") as f:
             json.dump(self.status_log, f, indent=2)
+
+    def write_convert_log(self):
+        """Write convert_to_hevc results to ~/Documents/convert.json."""
+        documents_dir = Path.home() / "Documents"
+        documents_dir.mkdir(parents=True, exist_ok=True)
+        with open(documents_dir / "convert.json", "w", encoding="utf-8") as f:
+            json.dump(self.convert_log, f, indent=2)
+
+    def write_streams_log(self):
+        """Write update_streams results to ~/Documents/streams.json."""
+        documents_dir = Path.home() / "Documents"
+        documents_dir.mkdir(parents=True, exist_ok=True)
+        with open(documents_dir / "streams.json", "w", encoding="utf-8") as f:
+            json.dump(self.streams_log, f, indent=2)
 
     def ask_commit_updates(self):
         """Prompt the user to commit processed files if any exist."""
@@ -372,8 +390,12 @@ class StreamSelectorApp(QWidget):
         self.update_streams_btn.setEnabled(False)
         QApplication.processEvents()
 
+        # reset convert log for this run
+        self.convert_log = []
+
         for idx, input_file in enumerate(self.video_files, start=1):
             duration = self.get_duration(input_file)
+            before_size = os.path.getsize(input_file)
             try:
                 result = subprocess.run(
                     [
@@ -402,6 +424,16 @@ class StreamSelectorApp(QWidget):
                         after_codec=codec,
                         before_size=os.path.getsize(input_file),
                         after_size=os.path.getsize(input_file),
+                    )
+                    self.convert_log.append(
+                        {
+                            "time": datetime.now().isoformat(),
+                            "filename": os.path.basename(input_file),
+                            "before_size": before_size,
+                            "after_size": before_size,
+                            "before_codec": codec,
+                            "after_codec": codec,
+                        }
                     )
                     continue
             except Exception as e:
@@ -462,8 +494,18 @@ class StreamSelectorApp(QWidget):
                         output_file=output_path,
                         before_codec=codec,
                         after_codec=self.get_video_codec(output_path),
-                        before_size=os.path.getsize(input_file),
+                        before_size=before_size,
                         after_size=os.path.getsize(output_path),
+                    )
+                    self.convert_log.append(
+                        {
+                            "time": datetime.now().isoformat(),
+                            "filename": os.path.basename(input_file),
+                            "before_size": before_size,
+                            "after_size": os.path.getsize(output_path),
+                            "before_codec": codec,
+                            "after_codec": self.get_video_codec(output_path),
+                        }
                     )
                 else:
                     raise subprocess.CalledProcessError(ret, cmd)
@@ -479,6 +521,7 @@ class StreamSelectorApp(QWidget):
             QApplication.processEvents()
 
         self.ask_commit_updates()
+        self.write_convert_log()
         self.status_label.setText("Done")
         self.progress_bar.hide()
         self.convert_video_btn.setEnabled(True)
@@ -501,6 +544,9 @@ class StreamSelectorApp(QWidget):
         self.convert_video_btn.setEnabled(False)
         self.update_streams_btn.setEnabled(False)
         QApplication.processEvents()
+
+        # reset streams log for this run
+        self.streams_log = []
 
         audio = self.audio_dropdown.currentText()
         subtitle = self.subtitle_dropdown.currentText()
@@ -576,6 +622,14 @@ class StreamSelectorApp(QWidget):
                         before_size=before_size,
                         after_size=os.path.getsize(output_path),
                     )
+                    self.streams_log.append(
+                        {
+                            "time": datetime.now().isoformat(),
+                            "filename": os.path.basename(input_file),
+                            "audio_stream": audio,
+                            "subtitle_stream": subtitle,
+                        }
+                    )
                 else:
                     raise subprocess.CalledProcessError(ret, cmd)
             except subprocess.CalledProcessError as e:
@@ -590,6 +644,7 @@ class StreamSelectorApp(QWidget):
             QApplication.processEvents()
 
         self.ask_commit_updates()
+        self.write_streams_log()
         self.status_label.setText("Done")
         self.progress_bar.hide()
         self.convert_video_btn.setEnabled(True)
@@ -606,6 +661,8 @@ if __name__ == "__main__":
     if getattr(window, "processed_dirs", None):
         window.commit_converted_files()
         window.write_status_log()
+        window.write_convert_log()
+        window.write_streams_log()
         try:
             import upload_to_influxdb
 
