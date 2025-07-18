@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import datetime
 from pathlib import Path
 from influxdb_client import InfluxDBClient, Point, WriteOptions
 
@@ -28,7 +29,12 @@ def send_entries(entries, measurement, write_api):
     for entry in entries:
         point = Point(measurement)
         for key, value in entry.items():
-            if isinstance(value, (int, float)):
+            if key == "time":
+                try:
+                    point.time(datetime.fromisoformat(str(value)))
+                except Exception:
+                    point.field("time_str", str(value))
+            elif isinstance(value, (int, float)):
                 point.field(key, value)
             else:
                 point.tag(key, str(value))

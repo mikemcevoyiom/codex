@@ -40,7 +40,8 @@ You can push the `conversion_status.json` log into InfluxDB for reporting with G
 Recent updates also generate `convert.json` and `streams.json`. These files
 summarise HEVC conversions and stream selections respectively. The uploader
 now reads all three logs and writes them to InfluxDB using a measurement name
-matching the JSON filename.
+matching the JSON filename. Each entry's `time` value is parsed as the
+timestamp for that record.
 
 1. Install the InfluxDB Python client:
    ```bash
