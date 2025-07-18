@@ -17,3 +17,19 @@ folder:
   already encoded in HEVC or AV1.
 * **Update Streams** – remuxes the chosen audio and subtitle streams while
   keeping the video stream as is.
+
+After processing, a `conversion_status.json` file is written to the same
+directory. Each entry in this log now includes the codec and file size before
+and after processing:
+
+```json
+{
+  "status": "converted",
+  "input": "original.mkv",
+  "output": "converted/original.mkv",
+  "before_codec": "h264",
+  "after_codec": "hevc",
+  "before_size": 12345678,
+  "after_size": 9876543
+}
+```

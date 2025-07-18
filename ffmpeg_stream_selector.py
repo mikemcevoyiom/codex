@@ -92,13 +92,31 @@ class StreamSelectorApp(QWidget):
         self.exit_btn.clicked.connect(self.quit_app)
         layout.addWidget(self.exit_btn, 8, 0, 1, 2)
 
-    def log_status(self, status, input_file=None, output_file=None, message=""):
+    def log_status(
+        self,
+        status,
+        input_file=None,
+        output_file=None,
+        message="",
+        before_codec=None,
+        after_codec=None,
+        before_size=None,
+        after_size=None,
+    ):
         entry = {
             "status": status,
             "input": input_file,
             "output": output_file,
             "message": message,
         }
+        if before_codec is not None:
+            entry["before_codec"] = before_codec
+        if after_codec is not None:
+            entry["after_codec"] = after_codec
+        if before_size is not None:
+            entry["before_size"] = before_size
+        if after_size is not None:
+            entry["after_size"] = after_size
         self.status_log.append(entry)
         print(f"{status.upper()}: {message or output_file or input_file}")
 
@@ -220,6 +238,30 @@ class StreamSelectorApp(QWidget):
                 elif part.startswith("time="):
                     time_pos = part.split("=", 1)[1]
         return fps, time_pos
+
+    def get_video_codec(self, filepath):
+        """Return the codec name of the first video stream."""
+        try:
+            result = subprocess.run(
+                [
+                    "ffprobe",
+                    "-v",
+                    "error",
+                    "-select_streams",
+                    "v:0",
+                    "-show_entries",
+                    "stream=codec_name",
+                    "-of",
+                    "default=noprint_wrappers=1:nokey=1",
+                    filepath,
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            return result.stdout.strip().lower()
+        except Exception:
+            return None
 
     def get_duration(self, filepath):
         """Return the duration of the input file in seconds."""
@@ -350,6 +392,10 @@ class StreamSelectorApp(QWidget):
                         "skipped",
                         input_file=input_file,
                         message=f"Already {codec.upper()}",
+                        before_codec=codec,
+                        after_codec=codec,
+                        before_size=os.path.getsize(input_file),
+                        after_size=os.path.getsize(input_file),
                     )
                     continue
             except Exception as e:
@@ -408,6 +454,10 @@ class StreamSelectorApp(QWidget):
                         "converted",
                         input_file=input_file,
                         output_file=output_path,
+                        before_codec=codec,
+                        after_codec=self.get_video_codec(output_path),
+                        before_size=os.path.getsize(input_file),
+                        after_size=os.path.getsize(output_path),
                     )
                 else:
                     raise subprocess.CalledProcessError(ret, cmd)
@@ -459,6 +509,8 @@ class StreamSelectorApp(QWidget):
 
         for idx, input_file in enumerate(self.video_files, start=1):
             duration = self.get_duration(input_file)
+            before_codec = self.get_video_codec(input_file)
+            before_size = os.path.getsize(input_file)
             converted_dir = os.path.join(os.path.dirname(input_file), "converted")
             os.makedirs(converted_dir, exist_ok=True)
             output_path = os.path.join(converted_dir, os.path.basename(input_file))
@@ -513,6 +565,10 @@ class StreamSelectorApp(QWidget):
                         "streams_updated",
                         input_file=input_file,
                         output_file=output_path,
+                        before_codec=before_codec,
+                        after_codec=self.get_video_codec(output_path),
+                        before_size=before_size,
+                        after_size=os.path.getsize(output_path),
                     )
                 else:
                     raise subprocess.CalledProcessError(ret, cmd)
