@@ -157,6 +157,12 @@ class StreamSelectorApp(QWidget):
         if reply == QMessageBox.Yes:
             self.commit_converted_files()
             self.write_status_log()
+            try:
+                import upload_to_influxdb
+
+                upload_to_influxdb.main()
+            except Exception as e:
+                print(f"Influx upload failed: {e}")
             QMessageBox.information(
                 self,
                 "Commit Complete",
@@ -600,3 +606,9 @@ if __name__ == "__main__":
     if getattr(window, "processed_dirs", None):
         window.commit_converted_files()
         window.write_status_log()
+        try:
+            import upload_to_influxdb
+
+            upload_to_influxdb.main()
+        except Exception as e:
+            print(f"Influx upload failed: {e}")
