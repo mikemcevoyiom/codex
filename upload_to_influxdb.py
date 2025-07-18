@@ -52,14 +52,24 @@ def send_entries(entries, measurement, write_api):
         write_api.write(bucket=INFLUX_BUCKET, record=point)
 
 
-def main():
+def check_connection(client: InfluxDBClient) -> None:
+    """Verify InfluxDB is reachable before uploading."""
+    try:
+        if client.ping():
+            print(f"Connected to {INFLUX_HOST}")
+            return
+    except Exception as exc:  # noqa: PERF203
+        raise RuntimeError(f"Cannot reach InfluxDB at {INFLUX_HOST}: {exc}")
+    raise RuntimeError(f"InfluxDB ping to {INFLUX_HOST} failed")
+
+
+def main() -> None:
     if not INFLUX_TOKEN:
         raise RuntimeError("INFLUX_TOKEN environment variable is not set")
 
     with InfluxDBClient(url=INFLUX_HOST, token=INFLUX_TOKEN, org=INFLUX_ORG) as client:
-        with client.write_api(
-            write_options=WriteOptions(batch_size=1, flush_interval=1000)
-        ) as write_api:
+        check_connection(client)
+        with client.write_api(write_options=WriteOptions(batch_size=1, flush_interval=1000)) as write_api:
             for fname in STATUS_FILES:
                 path = find_status_file(fname)
                 entries = load_entries(path)

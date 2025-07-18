@@ -28,8 +28,9 @@ After processing, two log files are written to your `~/Documents` folder:
 When you exit the application, the logs are automatically uploaded to InfluxDB
 using `upload_to_influxdb.py`. You can also run this script manually if
 needed. It reads `convert.json` and `streams.json` and writes each entry using
-the filename stem as the measurement name. Each record's `time` field is used
-as the timestamp if present.
+the filename stem as the measurement name. The script verifies connectivity
+to InfluxDB via `client.ping()` before attempting an upload, and each record's
+`time` field is used as the timestamp if present.
 
 1. Install the InfluxDB Python client:
    ```bash
