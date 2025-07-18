@@ -65,11 +65,13 @@ class StreamSelectorApp(QWidget):
         self.update_streams_btn.setStyleSheet("background-color: #90ee90;")
         self.update_streams_btn.clicked.connect(self.update_streams)
         layout.addWidget(self.update_streams_btn, 4, 0, 1, 2)
+        self.update_streams_btn.setEnabled(False)
 
         self.convert_video_btn = QPushButton("Convert to HEVC")
         self.convert_video_btn.setStyleSheet("background-color: #add8e6;")
         self.convert_video_btn.clicked.connect(self.convert_to_hevc)
         layout.addWidget(self.convert_video_btn, 5, 0, 1, 2)
+        self.convert_video_btn.setEnabled(False)
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 0)
@@ -172,12 +174,16 @@ class StreamSelectorApp(QWidget):
             self.log_status(
                 "error", message="No MKV or MP4 files found in selected folder."
             )
+            self.convert_video_btn.setEnabled(False)
+            self.update_streams_btn.setEnabled(False)
             return
 
         self.current_index = 0
         self.selected_file = self.video_files[self.current_index]
         self.current_file = self.selected_file
         self.populate_stream_dropdowns(self.selected_file)
+        self.convert_video_btn.setEnabled(True)
+        self.update_streams_btn.setEnabled(True)
 
     def run_ffprobe(self, filepath, stream_type):
         try:
@@ -303,6 +309,11 @@ class StreamSelectorApp(QWidget):
     def convert_to_hevc(self):
         if not getattr(self, "video_files", None):
             self.log_status("error", message="Please select a folder first.")
+            QMessageBox.warning(
+                self,
+                "No Folder Selected",
+                "Please select a folder first.",
+            )
             return
 
         self.status_label.setText("Converting... please wait")
@@ -420,6 +431,11 @@ class StreamSelectorApp(QWidget):
     def update_streams(self):
         if not getattr(self, "video_files", None):
             self.log_status("error", message="Please select a folder first.")
+            QMessageBox.warning(
+                self,
+                "No Folder Selected",
+                "Please select a folder first.",
+            )
             return
 
         self.status_label.setText("Updating streams... please wait")
