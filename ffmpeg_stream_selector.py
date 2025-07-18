@@ -65,11 +65,13 @@ class StreamSelectorApp(QWidget):
         self.update_streams_btn.setStyleSheet("background-color: #90ee90;")
         self.update_streams_btn.clicked.connect(self.update_streams)
         layout.addWidget(self.update_streams_btn, 4, 0, 1, 2)
+        self.update_streams_btn.setEnabled(False)
 
         self.convert_video_btn = QPushButton("Convert to HEVC")
         self.convert_video_btn.setStyleSheet("background-color: #add8e6;")
         self.convert_video_btn.clicked.connect(self.convert_to_hevc)
         layout.addWidget(self.convert_video_btn, 5, 0, 1, 2)
+        self.convert_video_btn.setEnabled(False)
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 0)
@@ -172,12 +174,16 @@ class StreamSelectorApp(QWidget):
             self.log_status(
                 "error", message="No MKV or MP4 files found in selected folder."
             )
+            self.convert_video_btn.setEnabled(False)
+            self.update_streams_btn.setEnabled(False)
             return
 
         self.current_index = 0
         self.selected_file = self.video_files[self.current_index]
         self.current_file = self.selected_file
         self.populate_stream_dropdowns(self.selected_file)
+        self.convert_video_btn.setEnabled(True)
+        self.update_streams_btn.setEnabled(True)
 
     def run_ffprobe(self, filepath, stream_type):
         try:
@@ -214,6 +220,37 @@ class StreamSelectorApp(QWidget):
                 elif part.startswith("time="):
                     time_pos = part.split("=", 1)[1]
         return fps, time_pos
+
+    def get_duration(self, filepath):
+        """Return the duration of the input file in seconds."""
+        try:
+            result = subprocess.run(
+                [
+                    "ffprobe",
+                    "-v",
+                    "error",
+                    "-show_entries",
+                    "format=duration",
+                    "-of",
+                    "default=noprint_wrappers=1:nokey=1",
+                    filepath,
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            return float(result.stdout.strip())
+        except Exception as e:
+            print(f"ffprobe duration error for {filepath}:", e)
+            return None
+
+    def time_to_seconds(self, time_str):
+        """Convert an HH:MM:SS.xxx time string to seconds."""
+        try:
+            h, m, s = time_str.split(":")
+            return int(h) * 3600 + int(m) * 60 + float(s)
+        except Exception:
+            return None
 
     def populate_stream_dropdowns(self, filepath):
         audio_streams = self.run_ffprobe(filepath, "a")
@@ -272,15 +309,23 @@ class StreamSelectorApp(QWidget):
     def convert_to_hevc(self):
         if not getattr(self, "video_files", None):
             self.log_status("error", message="Please select a folder first.")
+            QMessageBox.warning(
+                self,
+                "No Folder Selected",
+                "Please select a folder first.",
+            )
             return
 
         self.status_label.setText("Converting... please wait")
+        self.progress_bar.setRange(0, len(self.video_files) * 100)
+        self.progress_bar.setValue(0)
         self.progress_bar.show()
         self.convert_video_btn.setEnabled(False)
         self.update_streams_btn.setEnabled(False)
         QApplication.processEvents()
 
-        for input_file in self.video_files:
+        for idx, input_file in enumerate(self.video_files, start=1):
+            duration = self.get_duration(input_file)
             try:
                 result = subprocess.run(
                     [
@@ -347,6 +392,13 @@ class StreamSelectorApp(QWidget):
                         self.status_label.setText(
                             f"fps: {fps} time: {time_pos}"
                         )
+                        if duration and time_pos:
+                            secs = self.time_to_seconds(time_pos)
+                            if secs is not None:
+                                progress = min(secs / duration, 1.0)
+                                self.progress_bar.setValue(
+                                    int((idx - 1 + progress) * 100)
+                                )
                         QApplication.processEvents()
                 ret = process.wait()
                 if ret == 0:
@@ -367,6 +419,9 @@ class StreamSelectorApp(QWidget):
                     message="FFmpeg failed during conversion",
                 )
 
+            self.progress_bar.setValue(idx * 100)
+            QApplication.processEvents()
+
         self.ask_commit_updates()
         self.status_label.setText("Done")
         self.progress_bar.hide()
@@ -376,9 +431,16 @@ class StreamSelectorApp(QWidget):
     def update_streams(self):
         if not getattr(self, "video_files", None):
             self.log_status("error", message="Please select a folder first.")
+            QMessageBox.warning(
+                self,
+                "No Folder Selected",
+                "Please select a folder first.",
+            )
             return
 
         self.status_label.setText("Updating streams... please wait")
+        self.progress_bar.setRange(0, len(self.video_files) * 100)
+        self.progress_bar.setValue(0)
         self.progress_bar.show()
         self.convert_video_btn.setEnabled(False)
         self.update_streams_btn.setEnabled(False)
@@ -395,7 +457,8 @@ class StreamSelectorApp(QWidget):
         subtitle_index = subtitle.split(" ")[1]
         audio_index = audio.split(" ")[1]
 
-        for input_file in self.video_files:
+        for idx, input_file in enumerate(self.video_files, start=1):
+            duration = self.get_duration(input_file)
             converted_dir = os.path.join(os.path.dirname(input_file), "converted")
             os.makedirs(converted_dir, exist_ok=True)
             output_path = os.path.join(converted_dir, os.path.basename(input_file))
@@ -434,6 +497,13 @@ class StreamSelectorApp(QWidget):
                         self.status_label.setText(
                             f"fps: {fps} time: {time_pos}"
                         )
+                        if duration and time_pos:
+                            secs = self.time_to_seconds(time_pos)
+                            if secs is not None:
+                                progress = min(secs / duration, 1.0)
+                                self.progress_bar.setValue(
+                                    int((idx - 1 + progress) * 100)
+                                )
                         QApplication.processEvents()
                 ret = process.wait()
                 if ret == 0:
@@ -453,6 +523,9 @@ class StreamSelectorApp(QWidget):
                     input_file=input_file,
                     message="FFmpeg failed during stream update",
                 )
+
+            self.progress_bar.setValue(idx * 100)
+            QApplication.processEvents()
 
         self.ask_commit_updates()
         self.status_label.setText("Done")
