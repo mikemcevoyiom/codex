@@ -1,134 +1,86 @@
 from pathlib import Path
 import os
 import sys
+import subprocess
+import json
+from datetime import datetime
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+from PIL import Image, ImageTk
 
-# Default directory used when no folder is selected. Users can override
-# this path with the STREAM_SELECTOR_DIR environment variable. The default
-# falls back to a "videos/unprocessed/new" directory in the user's home
-# folder to work across operating systems.
+# Default directory used when no folder is selected. Users can override this
+# path with the STREAM_SELECTOR_DIR environment variable. It falls back to a
+# "videos/unprocessed/new" directory in the user's home folder.
 DEFAULT_VIDEO_DIR = Path(
     os.getenv("STREAM_SELECTOR_DIR", Path.home() / "videos" / "unprocessed" / "new")
 )
 
 # Directory containing button icon images
 IMAGE_DIR = Path(__file__).resolve().parent / "images"
-from PyQt5.QtWidgets import (
-    QApplication,
-    QWidget,
-    QGridLayout,
-    QLabel,
-    QPushButton,
-    QFileDialog,
-    QMessageBox,
-    QComboBox,
-    QCheckBox,
-    QProgressBar,
-)
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import Qt, QSettings, QSize
-import subprocess
-import json
-from datetime import datetime
+
+# Location for storing the last folder path between runs
+SETTINGS_FILE = Path.home() / ".stream_selector_last_folder"
 
 
-class StreamSelectorApp(QWidget):
+class StreamSelectorApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.settings = QSettings("Codex", "StreamSelector")
-        self.setWindowTitle("FFmpeg Stream Selector")
-        # Increase window size by one third to provide more room for widgets
-        self.resize(600, 400)
+        self.title("FFmpeg Stream Selector")
+        self.geometry("600x400")
+        self.resizable(False, False)
 
-        layout = QGridLayout()
-        self.setLayout(layout)
-        layout.setColumnStretch(0, 1)
-        layout.setColumnStretch(1, 1)
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
 
-        self.select_file_btn = QPushButton("Select Folder")
-        self.select_file_btn.clicked.connect(self.select_path)
-        # The button will also display the chosen folder path
-        self.select_file_btn.setMinimumHeight(50)
-        last_folder = self.settings.value("last_folder")
-        if last_folder:
-            self.select_file_btn.setText(f"Select Folder\n{last_folder}")
-            self.select_file_btn.setToolTip(last_folder)
-        layout.addWidget(self.select_file_btn, 0, 0, 1, 2)
+        self.select_file_btn = tk.Button(self, text="Select Folder", command=self.select_path, height=2)
+        if SETTINGS_FILE.exists():
+            last = SETTINGS_FILE.read_text().strip()
+            if last:
+                self.select_file_btn.config(text=f"Select Folder\n{last}")
+        self.select_file_btn.grid(row=0, column=0, columnspan=2, sticky="ew", pady=5, padx=5)
 
-        self.audio_label = QLabel("Select Audio Stream:")
-        layout.addWidget(self.audio_label, 1, 0)
-        self.audio_dropdown = QComboBox()
-        layout.addWidget(self.audio_dropdown, 1, 1)
+        tk.Label(self, text="Select Audio Stream:").grid(row=1, column=0, sticky="e", padx=5)
+        self.audio_dropdown = ttk.Combobox(self, state="readonly")
+        self.audio_dropdown.grid(row=1, column=1, sticky="ew", padx=5)
 
-        self.subtitle_label = QLabel("Select Subtitle Stream:")
-        layout.addWidget(self.subtitle_label, 2, 0)
-        self.subtitle_dropdown = QComboBox()
-        layout.addWidget(self.subtitle_dropdown, 2, 1)
+        tk.Label(self, text="Select Subtitle Stream:").grid(row=2, column=0, sticky="e", padx=5)
+        self.subtitle_dropdown = ttk.Combobox(self, state="readonly")
+        self.subtitle_dropdown.grid(row=2, column=1, sticky="ew", padx=5)
 
-        self.bitrate_label = QLabel("Bitrate (kbps):")
-        layout.addWidget(self.bitrate_label, 3, 0)
-        self.bitrate_dropdown = QComboBox()
-        self.bitrate_dropdown.addItems([str(b) for b in range(1000, 4500, 500)])
-        self.bitrate_dropdown.setCurrentText("2000")
-        layout.addWidget(self.bitrate_dropdown, 3, 1)
+        tk.Label(self, text="Bitrate (kbps):").grid(row=3, column=0, sticky="e", padx=5)
+        self.bitrate_dropdown = ttk.Combobox(self, values=[str(b) for b in range(1000, 4500, 500)], state="readonly")
+        self.bitrate_dropdown.set("2000")
+        self.bitrate_dropdown.grid(row=3, column=1, sticky="ew", padx=5)
 
-        self.update_streams_btn = QPushButton()
-        up_icon = QIcon(str(IMAGE_DIR / "updatestreams.png"))
-        self.update_streams_btn.setIcon(up_icon)
-        self.update_streams_btn.setToolTip("Update Streams")
-        self.update_streams_btn.setStyleSheet("background-color: #90ee90;")
-        self.update_streams_btn.setMinimumHeight(40)
-        self.update_streams_btn.setIconSize(QSize(32, 32))
-        self.update_streams_btn.clicked.connect(self.update_streams)
-        layout.addWidget(self.update_streams_btn, 4, 0, 1, 2)
-        self.update_streams_btn.setEnabled(False)
+        up_img = ImageTk.PhotoImage(Image.open(IMAGE_DIR / "updatestreams.png").resize((32, 32)))
+        self.update_streams_btn = tk.Button(self, image=up_img, bg="#90ee90", command=self.update_streams, width=40, height=40)
+        self.update_streams_btn.image = up_img
+        self.update_streams_btn.grid(row=4, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+        self.update_streams_btn["state"] = "disabled"
 
-        self.convert_video_btn = QPushButton()
-        conv_icon = QIcon(str(IMAGE_DIR / "convertvideo.png"))
-        self.convert_video_btn.setIcon(conv_icon)
-        self.convert_video_btn.setToolTip("Convert to HEVC")
-        self.convert_video_btn.setStyleSheet("background-color: #add8e6;")
-        self.convert_video_btn.setMinimumHeight(40)
-        self.convert_video_btn.setIconSize(QSize(32, 32))
-        self.convert_video_btn.clicked.connect(self.convert_to_hevc)
-        layout.addWidget(self.convert_video_btn, 5, 0, 1, 2)
-        self.convert_video_btn.setEnabled(False)
+        conv_img = ImageTk.PhotoImage(Image.open(IMAGE_DIR / "convertvideo.png").resize((32, 32)))
+        self.convert_video_btn = tk.Button(self, image=conv_img, bg="#add8e6", command=self.convert_to_hevc, width=40, height=40)
+        self.convert_video_btn.image = conv_img
+        self.convert_video_btn.grid(row=5, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+        self.convert_video_btn["state"] = "disabled"
 
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setRange(0, 0)
-        self.progress_bar.hide()
-        layout.addWidget(self.progress_bar, 6, 0, 1, 2)
+        self.progress_bar = ttk.Progressbar(self, mode="determinate")
+        self.progress_bar.grid(row=6, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+        self.progress_bar.grid_remove()
 
-        self.status_label = QLabel("")
-        self.status_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.status_label, 7, 0, 1, 2)
+        self.status_label = tk.Label(self, text="", anchor="center")
+        self.status_label.grid(row=7, column=0, columnspan=2, sticky="ew", pady=5)
 
-        # Track processed directories for cleanup after exiting
+        self.exit_btn = tk.Button(self, text="Exit", command=self.quit_app)
+        self.exit_btn.grid(row=8, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+
         self.processed_dirs = set()
-
-        # Collect status information for JSON output
         self.status_log = []
-        # Separate logs for conversion and stream updates
         self.convert_log = []
         self.streams_log = []
-
-        self.exit_btn = QPushButton("Exit")
-        self.exit_btn.clicked.connect(self.quit_app)
-        layout.addWidget(self.exit_btn, 8, 0, 1, 2)
-
-        # Track whether the exit button was used to close the app
         self.exit_clicked = False
 
-    def log_status(
-        self,
-        status,
-        input_file=None,
-        output_file=None,
-        message="",
-        before_codec=None,
-        after_codec=None,
-        before_size=None,
-        after_size=None,
-    ):
+    def log_status(self, status, input_file=None, output_file=None, message="", before_codec=None, after_codec=None, before_size=None, after_size=None):
         entry = {
             "status": status,
             "input": input_file,
@@ -147,9 +99,7 @@ class StreamSelectorApp(QWidget):
         print(f"{status.upper()}: {message or output_file or input_file}")
 
     def commit_converted_files(self):
-        """Move processed files back to their original location and clean up."""
         import shutil
-
         for conv_dir in list(self.processed_dirs):
             if not os.path.isdir(conv_dir):
                 continue
@@ -163,85 +113,56 @@ class StreamSelectorApp(QWidget):
                 print(f"Could not remove {conv_dir} — it may not be empty.")
         self.processed_dirs.clear()
 
-
     def write_convert_log(self):
-        """Write convert_to_hevc results to ~/Documents/convert.json."""
         documents_dir = Path.home() / "Documents"
         documents_dir.mkdir(parents=True, exist_ok=True)
         with open(documents_dir / "convert.json", "w", encoding="utf-8") as f:
             json.dump(self.convert_log, f, indent=2)
 
     def write_streams_log(self):
-        """Write update_streams results to ~/Documents/streams.json."""
         documents_dir = Path.home() / "Documents"
         documents_dir.mkdir(parents=True, exist_ok=True)
         with open(documents_dir / "streams.json", "w", encoding="utf-8") as f:
             json.dump(self.streams_log, f, indent=2)
 
     def ask_commit_updates(self):
-        """Prompt the user to commit processed files if any exist."""
         if not self.processed_dirs:
             return
-        reply = QMessageBox.question(
-            self,
-            "Processing Complete",
-            "All work completed. Commit updates to original files?",
-            QMessageBox.Yes | QMessageBox.No,
-        )
-        if reply == QMessageBox.Yes:
+        if messagebox.askyesno("Processing Complete", "All work completed. Commit updates to original files?"):
             self.commit_converted_files()
-            QMessageBox.information(
-                self,
-                "Commit Complete",
-                "Converted files have been moved back.",
-            )
+            messagebox.showinfo("Commit Complete", "Converted files have been moved back.")
 
     def quit_app(self):
-        """Handle exit button click."""
         self.exit_clicked = True
         self.ask_commit_updates()
         self.write_convert_log()
         self.write_streams_log()
-        # Results are only written to the local JSON files. Uploading to an
-        # external database has been disabled.
-        QApplication.quit()
+        self.destroy()
 
     def select_path(self):
-        from pathlib import Path
-
-        folder = QFileDialog.getExistingDirectory(
-            self,
-            "Select folder with video files",
-            self.settings.value("last_folder", str(DEFAULT_VIDEO_DIR)),
-        )
+        initial = DEFAULT_VIDEO_DIR
+        if SETTINGS_FILE.exists():
+            saved = SETTINGS_FILE.read_text().strip()
+            if saved:
+                initial = saved
+        folder = filedialog.askdirectory(title="Select folder with video files", initialdir=initial)
         if not folder:
             return
-
-        self.settings.setValue("last_folder", folder)
-
+        SETTINGS_FILE.write_text(folder)
         self.selected_folder = folder
-        # Show the selected folder on the button itself
-        self.select_file_btn.setText(f"Select Folder\n{folder}")
-        self.select_file_btn.setToolTip(folder)
-
-        self.video_files = sorted(
-            [str(f) for f in Path(folder).rglob("*.mkv")]
-            + [str(f) for f in Path(folder).rglob("*.mp4")]
-        )
+        self.select_file_btn.config(text=f"Select Folder\n{folder}")
+        self.video_files = sorted([str(f) for f in Path(folder).rglob("*.mkv")] + [str(f) for f in Path(folder).rglob("*.mp4")])
         if not self.video_files:
-            self.log_status(
-                "error", message="No MKV or MP4 files found in selected folder."
-            )
-            self.convert_video_btn.setEnabled(False)
-            self.update_streams_btn.setEnabled(False)
+            self.log_status("error", message="No MKV or MP4 files found in selected folder.")
+            self.convert_video_btn["state"] = "disabled"
+            self.update_streams_btn["state"] = "disabled"
             return
-
         self.current_index = 0
         self.selected_file = self.video_files[self.current_index]
         self.current_file = self.selected_file
         self.populate_stream_dropdowns(self.selected_file)
-        self.convert_video_btn.setEnabled(True)
-        self.update_streams_btn.setEnabled(True)
+        self.convert_video_btn["state"] = "normal"
+        self.update_streams_btn["state"] = "normal"
 
     def run_ffprobe(self, filepath, stream_type):
         try:
@@ -280,7 +201,6 @@ class StreamSelectorApp(QWidget):
         return fps, time_pos
 
     def get_video_codec(self, filepath):
-        """Return the codec name of the first video stream."""
         try:
             result = subprocess.run(
                 [
@@ -304,7 +224,6 @@ class StreamSelectorApp(QWidget):
             return None
 
     def get_duration(self, filepath):
-        """Return the duration of the input file in seconds."""
         try:
             result = subprocess.run(
                 [
@@ -327,7 +246,6 @@ class StreamSelectorApp(QWidget):
             return None
 
     def time_to_seconds(self, time_str):
-        """Convert an HH:MM:SS.xxx time string to seconds."""
         try:
             h, m, s = time_str.split(":")
             return int(h) * 3600 + int(m) * 60 + float(s)
@@ -353,7 +271,6 @@ class StreamSelectorApp(QWidget):
             if title:
                 label += f" ({title})"
             audio_options.append(label)
-
             if default_audio is None and lang.lower() == "eng":
                 default_audio = label
 
@@ -367,7 +284,6 @@ class StreamSelectorApp(QWidget):
             if title:
                 label += f" ({title})"
             subtitle_options.append(label)
-
             title_lower = title.lower()
             if (
                 default_subtitle is None
@@ -376,37 +292,27 @@ class StreamSelectorApp(QWidget):
             ):
                 default_subtitle = label
 
-        self.audio_dropdown.clear()
-        self.audio_dropdown.addItems(audio_options)
+        self.audio_dropdown["values"] = audio_options
         if default_audio and default_audio in audio_options:
-            self.audio_dropdown.setCurrentIndex(audio_options.index(default_audio))
+            self.audio_dropdown.current(audio_options.index(default_audio))
 
-        self.subtitle_dropdown.clear()
-        self.subtitle_dropdown.addItems(subtitle_options)
+        self.subtitle_dropdown["values"] = subtitle_options
         if default_subtitle and default_subtitle in subtitle_options:
-            self.subtitle_dropdown.setCurrentIndex(
-                subtitle_options.index(default_subtitle)
-            )
+            self.subtitle_dropdown.current(subtitle_options.index(default_subtitle))
 
     def convert_to_hevc(self):
         if not getattr(self, "video_files", None):
             self.log_status("error", message="Please select a folder first.")
-            QMessageBox.warning(
-                self,
-                "No Folder Selected",
-                "Please select a folder first.",
-            )
+            messagebox.showwarning("No Folder Selected", "Please select a folder first.")
             return
 
-        self.status_label.setText("Converting... please wait")
-        self.progress_bar.setRange(0, len(self.video_files) * 100)
-        self.progress_bar.setValue(0)
-        self.progress_bar.show()
-        self.convert_video_btn.setEnabled(False)
-        self.update_streams_btn.setEnabled(False)
-        QApplication.processEvents()
-
-        # reset convert log for this run
+        self.status_label.config(text="Converting... please wait")
+        self.progress_bar["maximum"] = len(self.video_files) * 100
+        self.progress_bar["value"] = 0
+        self.progress_bar.grid()
+        self.convert_video_btn["state"] = "disabled"
+        self.update_streams_btn["state"] = "disabled"
+        self.update_idletasks()
         self.convert_log = []
 
         for idx, input_file in enumerate(self.video_files, start=1):
@@ -453,9 +359,7 @@ class StreamSelectorApp(QWidget):
                     )
                     continue
             except Exception as e:
-                self.log_status(
-                    "error", input_file=input_file, message=f"Codec check failed: {e}"
-                )
+                self.log_status("error", input_file=input_file, message=f"Codec check failed: {e}")
                 continue
 
             converted_dir = os.path.join(os.path.dirname(input_file), "converted")
@@ -478,28 +382,22 @@ class StreamSelectorApp(QWidget):
                 "-usage",
                 "transcoding",
                 "-b:v",
-                self.bitrate_dropdown.currentText() + "k",
+                self.bitrate_dropdown.get() + "k",
                 output_path,
             ]
 
             try:
-                process = subprocess.Popen(
-                    cmd, stderr=subprocess.PIPE, text=True
-                )
+                process = subprocess.Popen(cmd, stderr=subprocess.PIPE, text=True)
                 for line in process.stderr:
                     fps, time_pos = self.parse_ffmpeg_progress(line)
                     if fps or time_pos:
-                        self.status_label.setText(
-                            f"fps: {fps} time: {time_pos}"
-                        )
+                        self.status_label.config(text=f"fps: {fps} time: {time_pos}")
                         if duration and time_pos:
                             secs = self.time_to_seconds(time_pos)
                             if secs is not None:
                                 progress = min(secs / duration, 1.0)
-                                self.progress_bar.setValue(
-                                    int((idx - 1 + progress) * 100)
-                                )
-                        QApplication.processEvents()
+                                self.progress_bar["value"] = int((idx - 1 + progress) * 100)
+                        self.update_idletasks()
                 ret = process.wait()
                 if ret == 0:
                     self.processed_dirs.add(converted_dir)
@@ -527,49 +425,37 @@ class StreamSelectorApp(QWidget):
                     raise subprocess.CalledProcessError(ret, cmd)
             except subprocess.CalledProcessError as e:
                 print("FFmpeg error:", e)
-                self.log_status(
-                    "error",
-                    input_file=input_file,
-                    message="FFmpeg failed during conversion",
-                )
+                self.log_status("error", input_file=input_file, message="FFmpeg failed during conversion")
 
-            self.progress_bar.setValue(idx * 100)
-            QApplication.processEvents()
+            self.progress_bar["value"] = idx * 100
+            self.update_idletasks()
 
         self.ask_commit_updates()
         self.write_convert_log()
-        self.status_label.setText("Done")
-        self.progress_bar.hide()
-        self.convert_video_btn.setEnabled(True)
-        self.update_streams_btn.setEnabled(True)
+        self.status_label.config(text="Done")
+        self.progress_bar.grid_remove()
+        self.convert_video_btn["state"] = "normal"
+        self.update_streams_btn["state"] = "normal"
 
     def update_streams(self):
         if not getattr(self, "video_files", None):
             self.log_status("error", message="Please select a folder first.")
-            QMessageBox.warning(
-                self,
-                "No Folder Selected",
-                "Please select a folder first.",
-            )
+            messagebox.showwarning("No Folder Selected", "Please select a folder first.")
             return
 
-        self.status_label.setText("Updating streams... please wait")
-        self.progress_bar.setRange(0, len(self.video_files) * 100)
-        self.progress_bar.setValue(0)
-        self.progress_bar.show()
-        self.convert_video_btn.setEnabled(False)
-        self.update_streams_btn.setEnabled(False)
-        QApplication.processEvents()
-
-        # reset streams log for this run
+        self.status_label.config(text="Updating streams... please wait")
+        self.progress_bar["maximum"] = len(self.video_files) * 100
+        self.progress_bar["value"] = 0
+        self.progress_bar.grid()
+        self.convert_video_btn["state"] = "disabled"
+        self.update_streams_btn["state"] = "disabled"
+        self.update_idletasks()
         self.streams_log = []
 
-        audio = self.audio_dropdown.currentText()
-        subtitle = self.subtitle_dropdown.currentText()
+        audio = self.audio_dropdown.get()
+        subtitle = self.subtitle_dropdown.get()
         if not audio or not subtitle:
-            self.log_status(
-                "error", message="Please select both audio and subtitle streams."
-            )
+            self.log_status("error", message="Please select both audio and subtitle streams.")
             return
 
         subtitle_index = subtitle.split(" ")[1]
@@ -608,23 +494,17 @@ class StreamSelectorApp(QWidget):
             ]
 
             try:
-                process = subprocess.Popen(
-                    cmd, stderr=subprocess.PIPE, text=True
-                )
+                process = subprocess.Popen(cmd, stderr=subprocess.PIPE, text=True)
                 for line in process.stderr:
                     fps, time_pos = self.parse_ffmpeg_progress(line)
                     if fps or time_pos:
-                        self.status_label.setText(
-                            f"fps: {fps} time: {time_pos}"
-                        )
+                        self.status_label.config(text=f"fps: {fps} time: {time_pos}")
                         if duration and time_pos:
                             secs = self.time_to_seconds(time_pos)
                             if secs is not None:
                                 progress = min(secs / duration, 1.0)
-                                self.progress_bar.setValue(
-                                    int((idx - 1 + progress) * 100)
-                                )
-                        QApplication.processEvents()
+                                self.progress_bar["value"] = int((idx - 1 + progress) * 100)
+                        self.update_idletasks()
                 ret = process.wait()
                 if ret == 0:
                     self.processed_dirs.add(converted_dir)
@@ -650,34 +530,25 @@ class StreamSelectorApp(QWidget):
                     raise subprocess.CalledProcessError(ret, cmd)
             except subprocess.CalledProcessError as e:
                 print("FFmpeg error:", e)
-                self.log_status(
-                    "error",
-                    input_file=input_file,
-                    message="FFmpeg failed during stream update",
-                )
+                self.log_status("error", input_file=input_file, message="FFmpeg failed during stream update")
 
-            self.progress_bar.setValue(idx * 100)
-            QApplication.processEvents()
+            self.progress_bar["value"] = idx * 100
+            self.update_idletasks()
 
         self.ask_commit_updates()
         self.write_streams_log()
-        self.status_label.setText("Done")
-        self.progress_bar.hide()
-        self.convert_video_btn.setEnabled(True)
-        self.update_streams_btn.setEnabled(True)
+        self.status_label.config(text="Done")
+        self.progress_bar.grid_remove()
+        self.convert_video_btn["state"] = "normal"
+        self.update_streams_btn["state"] = "normal"
 
 
 if __name__ == "__main__":
-    qt_app = QApplication(sys.argv)
-    window = StreamSelectorApp()
-    window.show()
-    qt_app.exec_()
-
-    # Handle cleanup when the window is closed directly without using the exit button
-    if not getattr(window, "exit_clicked", False):
-        if getattr(window, "processed_dirs", None):
-            window.commit_converted_files()
-        window.write_convert_log()
-        window.write_streams_log()
-        # Uploading the logs to an external database has been disabled
+    app = StreamSelectorApp()
+    app.mainloop()
+    if not getattr(app, "exit_clicked", False):
+        if getattr(app, "processed_dirs", None):
+            app.commit_converted_files()
+        app.write_convert_log()
+        app.write_streams_log()
 
