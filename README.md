@@ -12,9 +12,9 @@ The application also remembers the last folder you used and defaults to that
 location the next time it runs.
 
 After launching the script, choose a folder containing your videos. Two
-image-based buttons are displayed using the files in the `images` directory.
-Click these pictures to perform the following actions on every video in the
-selected folder:
+image-based buttons appear with the same green and blue backgrounds as before,
+loading their icons from the `images` directory. Click these pictures to
+perform the following actions on every video in the selected folder:
 
 * **Convert to HEVC** – converts the currently selected file to HEVC if it is not
   already encoded in HEVC or AV1.
