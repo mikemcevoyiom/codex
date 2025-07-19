@@ -25,3 +25,16 @@ After processing, two log files are written to your `~/Documents` folder:
 - `convert.json` – details of any HEVC conversions
 - `streams.json` – summaries of selected audio and subtitle streams
 
+
+## theatre_gui.py
+
+`theatre_gui.py` provides a basic Tkinter interface for managing the theatre dashboard. The script uses Pillow for image handling and can log information to InfluxDB.
+
+Run the GUI with:
+
+```bash
+python theatre_gui.py
+```
+
+Since Tkinter requires an active display server, be sure to launch the program from a graphical desktop environment.
+
