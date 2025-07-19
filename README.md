@@ -25,3 +25,16 @@ After processing, two log files are written to your `~/Documents` folder:
 - `convert.json` – details of any HEVC conversions
 - `streams.json` – summaries of selected audio and subtitle streams
 
+## Theatre GUI
+
+`theatre_gui.py` provides a very small Tkinter window that displays a movie
+theatre background and an Exit button in the lower-right corner. To use it:
+
+1. Download a movie theatre image you like and save it as
+   `images/movie_theatre.png`.
+2. Install the image dependency with `pip install Pillow`.
+3. Run the script using `python3 theatre_gui.py`.
+
+If the image file is missing, the script will raise an error with a helpful
+message.
+
