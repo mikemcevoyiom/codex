@@ -1,11 +1,11 @@
-﻿# Check-InfluxBucketEmpty.ps1
+# Check-InfluxBucketEmpty.ps1
 # Confirms if the InfluxDB bucket is empty after a wipe
 
 # Configuration
 $InfluxHost = "http://192.168.1.28:8086"
 $Org = "Waterfall"
 $Bucket = "Video_Convert"
-$Token = "SC2OJktMgeOAQGjAxCx3NmNvq4_-CgEQoQiW7hST0TZiOt8q-zZA7MY-3X5VV3uJlB7DXbEnwCP7C95LhHAB1g=="
+$Token = Read-Host "Enter your InfluxDB API token"
 
 Write-Host "`nChecking if bucket '$Bucket' contains any remaining data..."
 
