@@ -13,3 +13,11 @@ ehthumbs.db
 .vscode/
 .idea/
 *.swp
+
+# PowerShell outputs
+*.ps1
+
+# Logs and build files
+*.log
+build/
+dist/
