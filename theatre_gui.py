@@ -42,56 +42,65 @@ class TheatreApp(tk.Tk):
         self.canvas.pack(fill="both", expand=True)
         self.canvas.create_image(0, 0, image=self.photo, anchor="nw")
 
-        # container for all controls, placed near the top-left
-        self.controls = tk.Frame(self)
-        self.controls.place(x=20, y=20)
+        # widgets are placed directly on the canvas so the background image shows
+        y_pos = 250
 
         # Select folder button - label will also display the chosen folder
         self.select_file_btn = tk.Button(
-            self.controls, text="Select Folder", command=self.select_path, width=30, height=2
+            self, text="Select Folder", command=self.select_path, width=30, height=2
         )
-        self.select_file_btn.grid(row=0, column=0, columnspan=2, pady=(0, 10))
+        self.canvas.create_window(400, y_pos, window=self.select_file_btn, anchor="n")
+        y_pos += 60
 
         last_folder = self._load_last_folder()
         if last_folder:
             self.select_file_btn.config(text=f"Select Folder\n{last_folder}")
             self.select_file_btn.tooltip = last_folder
 
-        tk.Label(self.controls, text="Select Audio Stream:").grid(row=1, column=0, sticky="e")
-        self.audio_dropdown = ttk.Combobox(self.controls, state="readonly", width=40)
-        self.audio_dropdown.grid(row=1, column=1, pady=2)
+        audio_label = tk.Label(self, text="Select Audio Stream:")
+        self.canvas.create_window(300, y_pos, window=audio_label, anchor="e")
+        self.audio_dropdown = ttk.Combobox(self, state="readonly", width=40)
+        self.canvas.create_window(310, y_pos, window=self.audio_dropdown, anchor="w")
+        y_pos += 30
 
-        tk.Label(self.controls, text="Select Subtitle Stream:").grid(row=2, column=0, sticky="e")
-        self.subtitle_dropdown = ttk.Combobox(self.controls, state="readonly", width=40)
-        self.subtitle_dropdown.grid(row=2, column=1, pady=2)
+        subtitle_label = tk.Label(self, text="Select Subtitle Stream:")
+        self.canvas.create_window(300, y_pos, window=subtitle_label, anchor="e")
+        self.subtitle_dropdown = ttk.Combobox(self, state="readonly", width=40)
+        self.canvas.create_window(310, y_pos, window=self.subtitle_dropdown, anchor="w")
+        y_pos += 30
 
-        tk.Label(self.controls, text="Bitrate (kbps):").grid(row=3, column=0, sticky="e")
-        self.bitrate_dropdown = ttk.Combobox(self.controls, state="readonly")
+        bitrate_label = tk.Label(self, text="Bitrate (kbps):")
+        self.canvas.create_window(300, y_pos, window=bitrate_label, anchor="e")
+        self.bitrate_dropdown = ttk.Combobox(self, state="readonly")
         self.bitrate_dropdown['values'] = [str(b) for b in range(1000, 4500, 500)]
         self.bitrate_dropdown.set("2000")
-        self.bitrate_dropdown.grid(row=3, column=1, pady=2)
+        self.canvas.create_window(310, y_pos, window=self.bitrate_dropdown, anchor="w")
+        y_pos += 40
 
         self.update_streams_btn = tk.Button(
-            self.controls, text="Update Streams", bg="#90ee90", command=self.update_streams
+            self, text="Update Streams", bg="#90ee90", command=self.update_streams
         )
-        self.update_streams_btn.grid(row=4, column=0, columnspan=2, pady=(10, 2), sticky="ew")
+        self.canvas.create_window(400, y_pos, window=self.update_streams_btn, anchor="n")
         self.update_streams_btn.config(state="disabled")
+        y_pos += 40
 
         self.convert_video_btn = tk.Button(
-            self.controls, text="Convert to HEVC", bg="#add8e6", command=self.convert_to_hevc
+            self, text="Convert to HEVC", bg="#add8e6", command=self.convert_to_hevc
         )
-        self.convert_video_btn.grid(row=5, column=0, columnspan=2, pady=2, sticky="ew")
+        self.canvas.create_window(400, y_pos, window=self.convert_video_btn, anchor="n")
         self.convert_video_btn.config(state="disabled")
 
         self.progress_var = tk.DoubleVar(value=0)
         self.progress_bar = ttk.Progressbar(
-            self.controls, variable=self.progress_var, maximum=100, mode="determinate", length=300
+            self, variable=self.progress_var, maximum=100, mode="determinate", length=300
         )
-        self.progress_bar.grid(row=6, column=0, columnspan=2, pady=(10, 2), sticky="ew")
-        self.progress_bar.grid_remove()
+        y_pos += 50
+        self.progress_bar_window = self.canvas.create_window(400, y_pos, window=self.progress_bar, anchor="n")
+        self.canvas.itemconfigure(self.progress_bar_window, state="hidden")
+        y_pos += 30
 
-        self.status_label = tk.Label(self.controls, text="", anchor="center")
-        self.status_label.grid(row=7, column=0, columnspan=2, pady=(2, 10))
+        self.status_label = tk.Label(self, text="", anchor="center")
+        self.canvas.create_window(400, y_pos, window=self.status_label, anchor="n")
 
         # Exit button from original demo
         self.exit_btn = tk.Button(self, text="Exit", command=self.quit_app, width=6)
@@ -372,7 +381,7 @@ class TheatreApp(tk.Tk):
         self.status_label.config(text="Converting... please wait")
         self.progress_bar['maximum'] = len(self.video_files) * 100
         self.progress_var.set(0)
-        self.progress_bar.grid()
+        self.canvas.itemconfigure(self.progress_bar_window, state="normal")
         self.convert_video_btn.config(state="disabled")
         self.update_streams_btn.config(state="disabled")
         self.update()
@@ -497,7 +506,7 @@ class TheatreApp(tk.Tk):
         self.ask_commit_updates()
         self.write_convert_log()
         self.status_label.config(text="Done")
-        self.progress_bar.grid_remove()
+        self.canvas.itemconfigure(self.progress_bar_window, state="hidden")
         self.convert_video_btn.config(state="normal")
         self.update_streams_btn.config(state="normal")
 
@@ -510,7 +519,7 @@ class TheatreApp(tk.Tk):
         self.status_label.config(text="Updating streams... please wait")
         self.progress_bar['maximum'] = len(self.video_files) * 100
         self.progress_var.set(0)
-        self.progress_bar.grid()
+        self.canvas.itemconfigure(self.progress_bar_window, state="normal")
         self.convert_video_btn.config(state="disabled")
         self.update_streams_btn.config(state="disabled")
         self.update()
@@ -603,7 +612,7 @@ class TheatreApp(tk.Tk):
         self.ask_commit_updates()
         self.write_streams_log()
         self.status_label.config(text="Done")
-        self.progress_bar.grid_remove()
+        self.canvas.itemconfigure(self.progress_bar_window, state="hidden")
         self.convert_video_btn.config(state="normal")
         self.update_streams_btn.config(state="normal")
 
