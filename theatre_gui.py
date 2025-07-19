@@ -81,14 +81,16 @@ class TheatreApp(tk.Tk):
         self.update_streams_btn = tk.Button(
             self, text="Update Streams", bg="#90ee90", command=self.update_streams
         )
-        self.canvas.create_window(400, y_pos, window=self.update_streams_btn, anchor="n")
+        # Shift button slightly left for better spacing
+        self.canvas.create_window(300, y_pos, window=self.update_streams_btn, anchor="n")
         self.update_streams_btn.config(state="disabled")
         y_pos += 40
 
         self.convert_video_btn = tk.Button(
             self, text="Convert to HEVC", bg="#add8e6", command=self.convert_to_hevc
         )
-        self.canvas.create_window(400, y_pos, window=self.convert_video_btn, anchor="n")
+        # Align convert button with updated streams button
+        self.canvas.create_window(300, y_pos, window=self.convert_video_btn, anchor="n")
         self.convert_video_btn.config(state="disabled")
 
         self.progress_var = tk.DoubleVar(value=0)
