@@ -21,7 +21,7 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QProgressBar,
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSettings
 import subprocess
 import json
 from datetime import datetime
@@ -30,6 +30,7 @@ from datetime import datetime
 class StreamSelectorApp(QWidget):
     def __init__(self):
         super().__init__()
+        self.settings = QSettings("Codex", "StreamSelector")
         self.setWindowTitle("FFmpeg Stream Selector")
         # Increase window size by one third to provide more room for widgets
         self.resize(600, 400)
@@ -43,6 +44,10 @@ class StreamSelectorApp(QWidget):
         self.select_file_btn.clicked.connect(self.select_path)
         # The button will also display the chosen folder path
         self.select_file_btn.setMinimumHeight(50)
+        last_folder = self.settings.value("last_folder")
+        if last_folder:
+            self.select_file_btn.setText(f"Select Folder\n{last_folder}")
+            self.select_file_btn.setToolTip(last_folder)
         layout.addWidget(self.select_file_btn, 0, 0, 1, 2)
 
         self.audio_label = QLabel("Select Audio Stream:")
@@ -193,10 +198,12 @@ class StreamSelectorApp(QWidget):
         folder = QFileDialog.getExistingDirectory(
             self,
             "Select folder with video files",
-            str(DEFAULT_VIDEO_DIR),
+            self.settings.value("last_folder", str(DEFAULT_VIDEO_DIR)),
         )
         if not folder:
             return
+
+        self.settings.setValue("last_folder", folder)
 
         self.selected_folder = folder
         # Show the selected folder on the button itself

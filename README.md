@@ -8,6 +8,8 @@ buttons.
 By default the script opens a directory located at `videos/unprocessed/new`
 within your home folder. You can specify a different location by setting the
 `STREAM_SELECTOR_DIR` environment variable before running the application.
+The application also remembers the last folder you used and defaults to that
+location the next time it runs.
 
 After launching the script, choose a folder containing your videos. Two buttons
 are available and each operation will be applied to every video in the selected
