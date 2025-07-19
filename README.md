@@ -11,15 +11,16 @@ within your home folder. You can specify a different location by setting the
 The application also remembers the last folder you used and defaults to that
 location the next time it runs.
 
-After launching the script, choose a folder containing your videos. Two
-image-based buttons appear with the same green and blue backgrounds as before,
-loading their icons from the `images` directory. Click these pictures to
-perform the following actions on every video in the selected folder:
+After launching the script, choose a folder containing your videos. Three
+image-based buttons appear with the same colored backgrounds as before, loading
+their icons from the `images` directory. Click these pictures to perform the
+following actions on every video in the selected folder:
 
 * **Convert to HEVC** – converts the currently selected file to HEVC if it is not
   already encoded in HEVC or AV1.
 * **Update Streams** – remuxes the chosen audio and subtitle streams while
   keeping the video stream as is.
+* **Update Video** – simply pops up a message confirming the button was pressed.
 
 After processing, two log files are written to your `~/Documents` folder:
 

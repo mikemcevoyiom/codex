@@ -64,15 +64,20 @@ class StreamSelectorApp(tk.Tk):
         self.convert_video_btn.grid(row=5, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
         self.convert_video_btn["state"] = "disabled"
 
+        updvid_img = ImageTk.PhotoImage(Image.open(IMAGE_DIR / "updatevideo.png").resize((32, 32)))
+        self.update_video_btn = tk.Button(self, image=updvid_img, command=self.update_video, width=40, height=40)
+        self.update_video_btn.image = updvid_img
+        self.update_video_btn.grid(row=6, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+
         self.progress_bar = ttk.Progressbar(self, mode="determinate")
-        self.progress_bar.grid(row=6, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+        self.progress_bar.grid(row=7, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
         self.progress_bar.grid_remove()
 
         self.status_label = tk.Label(self, text="", anchor="center")
-        self.status_label.grid(row=7, column=0, columnspan=2, sticky="ew", pady=5)
+        self.status_label.grid(row=8, column=0, columnspan=2, sticky="ew", pady=5)
 
         self.exit_btn = tk.Button(self, text="Exit", command=self.quit_app)
-        self.exit_btn.grid(row=8, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+        self.exit_btn.grid(row=9, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
 
         self.processed_dirs = set()
         self.status_log = []
@@ -436,6 +441,10 @@ class StreamSelectorApp(tk.Tk):
         self.progress_bar.grid_remove()
         self.convert_video_btn["state"] = "normal"
         self.update_streams_btn["state"] = "normal"
+
+    def update_video(self):
+        """Show a message when the update video button is pressed."""
+        messagebox.showinfo("Update Video", "This button has been pressed")
 
     def update_streams(self):
         if not getattr(self, "video_files", None):
