@@ -9,6 +9,9 @@ import sys
 DEFAULT_VIDEO_DIR = Path(
     os.getenv("STREAM_SELECTOR_DIR", Path.home() / "videos" / "unprocessed" / "new")
 )
+
+# Directory containing button icon images
+IMAGE_DIR = Path(__file__).resolve().parent / "images"
 from PyQt5.QtWidgets import (
     QApplication,
     QWidget,
@@ -21,7 +24,8 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QProgressBar,
 )
-from PyQt5.QtCore import Qt, QSettings
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import Qt, QSettings, QSize
 import subprocess
 import json
 from datetime import datetime
@@ -67,14 +71,22 @@ class StreamSelectorApp(QWidget):
         self.bitrate_dropdown.setCurrentText("2000")
         layout.addWidget(self.bitrate_dropdown, 3, 1)
 
-        self.update_streams_btn = QPushButton("Update Streams")
-        self.update_streams_btn.setStyleSheet("background-color: #90ee90;")
+        self.update_streams_btn = QPushButton()
+        self.update_streams_btn.setIcon(
+            QIcon(str(IMAGE_DIR / "updatestreams.png"))
+        )
+        self.update_streams_btn.setIconSize(QSize(200, 100))
+        self.update_streams_btn.setToolTip("Update Streams")
         self.update_streams_btn.clicked.connect(self.update_streams)
         layout.addWidget(self.update_streams_btn, 4, 0, 1, 2)
         self.update_streams_btn.setEnabled(False)
 
-        self.convert_video_btn = QPushButton("Convert to HEVC")
-        self.convert_video_btn.setStyleSheet("background-color: #add8e6;")
+        self.convert_video_btn = QPushButton()
+        self.convert_video_btn.setIcon(
+            QIcon(str(IMAGE_DIR / "convertvideo.png"))
+        )
+        self.convert_video_btn.setIconSize(QSize(200, 100))
+        self.convert_video_btn.setToolTip("Convert to HEVC")
         self.convert_video_btn.clicked.connect(self.convert_to_hevc)
         layout.addWidget(self.convert_video_btn, 5, 0, 1, 2)
         self.convert_video_btn.setEnabled(False)

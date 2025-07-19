@@ -12,8 +12,8 @@ The application also remembers the last folder you used and defaults to that
 location the next time it runs.
 
 After launching the script, choose a folder containing your videos. Two buttons
-are available and each operation will be applied to every video in the selected
-folder:
+represented by images found in the `images` directory are available and each
+operation will be applied to every video in the selected folder:
 
 * **Convert to HEVC** – converts the currently selected file to HEVC if it is not
   already encoded in HEVC or AV1.
