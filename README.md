@@ -47,3 +47,7 @@ python theatre_gui.py
 
 Since Tkinter requires an active display server, be sure to launch the program from a graphical desktop environment.
 
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
