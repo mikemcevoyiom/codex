@@ -5,7 +5,10 @@
 $InfluxHost = "http://192.168.1.28:8086"
 $Org = "Waterfall"
 $Bucket = "Video_Convert"
-$Token = Read-Host "Enter your InfluxDB API token"
+$Token = $Env:INFLUX_TOKEN
+if (-not $Token) {
+    $Token = Read-Host "Enter your InfluxDB API token"
+}
 
 Write-Host "`nChecking if bucket '$Bucket' contains any remaining data..."
 
