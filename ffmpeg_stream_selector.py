@@ -75,8 +75,9 @@ class StreamSelectorApp(QWidget):
         self.update_streams_btn.setIcon(
             QIcon(str(IMAGE_DIR / "updatestreams.png"))
         )
-        self.update_streams_btn.setIconSize(QSize(200, 100))
+        self.update_streams_btn.setIconSize(QSize(32, 32))
         self.update_streams_btn.setToolTip("Update Streams")
+        self.update_streams_btn.setStyleSheet("background-color: #90ee90;")
         self.update_streams_btn.clicked.connect(self.update_streams)
         layout.addWidget(self.update_streams_btn, 4, 0, 1, 2)
         self.update_streams_btn.setEnabled(False)
@@ -85,8 +86,9 @@ class StreamSelectorApp(QWidget):
         self.convert_video_btn.setIcon(
             QIcon(str(IMAGE_DIR / "convertvideo.png"))
         )
-        self.convert_video_btn.setIconSize(QSize(200, 100))
+        self.convert_video_btn.setIconSize(QSize(32, 32))
         self.convert_video_btn.setToolTip("Convert to HEVC")
+        self.convert_video_btn.setStyleSheet("background-color: #add8e6;")
         self.convert_video_btn.clicked.connect(self.convert_to_hevc)
         layout.addWidget(self.convert_video_btn, 5, 0, 1, 2)
         self.convert_video_btn.setEnabled(False)
