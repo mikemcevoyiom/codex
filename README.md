@@ -25,6 +25,15 @@ After processing, two log files are written to your `~/Documents` folder:
 - `convert.json` – details of any HEVC conversions
 - `streams.json` – summaries of selected audio and subtitle streams
 
+## Setup
+
+Install the required dependencies using `pip` and the provided
+`requirements.txt` file:
+
+```bash
+pip install -r requirements.txt
+```
+
 
 ## theatre_gui.py
 
