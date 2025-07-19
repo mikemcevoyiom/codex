@@ -27,11 +27,12 @@ After processing, two log files are written to your `~/Documents` folder:
 
 ## Theatre GUI
 
-`theatre_gui.py` provides a very small Tkinter window that displays a movie
+`theatre_gui.py` opens an 800×800 pixel Tkinter window that displays a movie
 theatre background and an Exit button in the lower-right corner. To use it:
 
 1. Download a movie theatre image you like and save it as
-   `images/movie_theatre.png`.
+   `images/movie_theatre.png`. The script automatically scales the image to
+   fit the 800×800 window so any size or aspect ratio is acceptable.
 2. Install the image dependency with `pip install Pillow`.
 3. Run the script using `python3 theatre_gui.py`.
 
