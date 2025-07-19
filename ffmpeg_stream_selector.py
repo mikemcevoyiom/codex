@@ -183,12 +183,8 @@ class StreamSelectorApp(QWidget):
         self.ask_commit_updates()
         self.write_convert_log()
         self.write_streams_log()
-        try:
-            import upload_to_influxdb
-
-            upload_to_influxdb.main()
-        except Exception as e:
-            print(f"Influx upload failed: {e}")
+        # Results are only written to the local JSON files. Uploading to an
+        # external database has been disabled.
         QApplication.quit()
 
     def select_path(self):
@@ -662,9 +658,5 @@ if __name__ == "__main__":
             window.commit_converted_files()
         window.write_convert_log()
         window.write_streams_log()
-        try:
-            import upload_to_influxdb
+        # Uploading the logs to an external database has been disabled
 
-            upload_to_influxdb.main()
-        except Exception as e:
-            print(f"Influx upload failed: {e}")
