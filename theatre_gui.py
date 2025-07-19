@@ -43,7 +43,8 @@ class TheatreApp(tk.Tk):
         self.canvas.create_image(0, 0, image=self.photo, anchor="nw")
 
         # widgets are placed directly on the canvas so the background image shows
-        y_pos = 250
+        # Shift all widgets upward for a more centered layout
+        y_pos = 50
 
         # Select folder button - label will also display the chosen folder
         self.select_file_btn = tk.Button(
