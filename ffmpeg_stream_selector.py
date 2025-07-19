@@ -35,6 +35,14 @@ class StreamSelectorApp(QWidget):
         # Increase window size by one third to provide more room for widgets
         self.resize(600, 400)
 
+        # Add background image that scales with the window size
+        bg_path = Path(__file__).resolve().parent / "images" / "background.png"
+        if bg_path.exists():
+            # border-image allows scaling the image to the widget dimensions
+            self.setStyleSheet(
+                f"border-image: url('{bg_path.as_posix()}') 0 0 0 0 stretch stretch;"
+            )
+
         layout = QGridLayout()
         self.setLayout(layout)
         layout.setColumnStretch(0, 1)
