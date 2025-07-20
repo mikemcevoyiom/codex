@@ -392,6 +392,7 @@ class TheatreApp(tk.Tk):
         self.convert_log = []
 
         for idx, input_file in enumerate(self.video_files, start=1):
+            self.current_file = input_file
             duration = self.get_duration(input_file)
             before_size = os.path.getsize(input_file)
             try:
@@ -467,7 +468,9 @@ class TheatreApp(tk.Tk):
                 for line in process.stderr:
                     fps, time_pos = self.parse_ffmpeg_progress(line)
                     if fps or time_pos:
-                        self.status_label.config(text=f"fps: {fps} time: {time_pos}")
+                        self.status_label.config(
+                            text=f"{os.path.basename(input_file)} - fps: {fps} time: {time_pos}"
+                        )
                         if duration and time_pos:
                             secs = self.time_to_seconds(time_pos)
                             if secs is not None:
@@ -539,6 +542,7 @@ class TheatreApp(tk.Tk):
         audio_index = audio.split(" ")[1]
 
         for idx, input_file in enumerate(self.video_files, start=1):
+            self.current_file = input_file
             duration = self.get_duration(input_file)
             before_codec = self.get_video_codec(input_file)
             before_size = os.path.getsize(input_file)
@@ -575,7 +579,9 @@ class TheatreApp(tk.Tk):
                 for line in process.stderr:
                     fps, time_pos = self.parse_ffmpeg_progress(line)
                     if fps or time_pos:
-                        self.status_label.config(text=f"fps: {fps} time: {time_pos}")
+                        self.status_label.config(
+                            text=f"{os.path.basename(input_file)} - fps: {fps} time: {time_pos}"
+                        )
                         if duration and time_pos:
                             secs = self.time_to_seconds(time_pos)
                             if secs is not None:
