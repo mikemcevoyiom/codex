@@ -326,7 +326,7 @@ class TheatreApp(tk.Tk):
         subtitle_streams = self.run_ffprobe(filepath, "s")
 
         audio_options = []
-        subtitle_options = []
+        subtitle_options = [""]
         default_audio = None
         default_subtitle = None
 
@@ -372,6 +372,8 @@ class TheatreApp(tk.Tk):
         self.subtitle_dropdown['values'] = subtitle_options
         if default_subtitle and default_subtitle in subtitle_options:
             self.subtitle_dropdown.set(default_subtitle)
+        elif len(subtitle_options) > 1:
+            self.subtitle_dropdown.set(subtitle_options[1])
         elif subtitle_options:
             self.subtitle_dropdown.set(subtitle_options[0])
 
@@ -534,11 +536,17 @@ class TheatreApp(tk.Tk):
 
         audio = self.audio_dropdown.get()
         subtitle = self.subtitle_dropdown.get()
-        if not audio or not subtitle:
+        if not audio:
+            self.log_status("error", message="Please select an audio stream.")
+            return
+
+        remove_subtitles = subtitle.strip() == ""
+        if not remove_subtitles and not subtitle:
             self.log_status("error", message="Please select both audio and subtitle streams.")
             return
 
-        subtitle_index = subtitle.split(" ")[1]
+        if not remove_subtitles:
+            subtitle_index = subtitle.split(" ")[1]
         audio_index = audio.split(" ")[1]
 
         for idx, input_file in enumerate(self.video_files, start=1):
@@ -559,20 +567,29 @@ class TheatreApp(tk.Tk):
                 "0:v:0",
                 "-map",
                 f"0:{audio_index}",
-                "-map",
-                f"0:{subtitle_index}",
+            ]
+
+            if not remove_subtitles:
+                cmd.extend([
+                    "-map",
+                    f"0:{subtitle_index}",
+                    "-c:s",
+                    "copy",
+                ])
+            else:
+                cmd.append("-sn")
+
+            cmd.extend([
                 "-c:v",
                 "copy",
                 "-c:a",
                 "copy",
-                "-c:s",
-                "copy",
                 "-map_chapters",
                 "0",
-                "-disposition:s:0",
-                "forced",
-                output_path,
-            ]
+            ])
+            if not remove_subtitles:
+                cmd.extend(["-disposition:s:0", "forced"])
+            cmd.append(output_path)
 
             try:
                 process = subprocess.Popen(cmd, stderr=subprocess.PIPE, text=True)
