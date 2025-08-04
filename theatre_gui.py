@@ -106,7 +106,7 @@ class TheatreApp(tk.Tk):
         self.canvas.itemconfigure(self.progress_bar_window, state="hidden")
         y_pos += 30
 
-        self.status_label = tk.Label(self, text="", anchor="center")
+        self.status_label = tk.Label(self, text="", anchor="center", justify="center")
         self.canvas.create_window(400, y_pos, window=self.status_label, anchor="n")
 
         # Exit button from original demo
@@ -484,7 +484,7 @@ class TheatreApp(tk.Tk):
                     fps, time_pos = self.parse_ffmpeg_progress(line)
                     if fps or time_pos:
                         self.status_label.config(
-                            text=f"{os.path.basename(input_file)} - fps: {fps} time: {time_pos}"
+                            text=f"{os.path.basename(input_file)}\nfps: {fps}\ntime: {time_pos}"
                         )
                         if duration and time_pos:
                             secs = self.time_to_seconds(time_pos)
@@ -615,7 +615,7 @@ class TheatreApp(tk.Tk):
                     fps, time_pos = self.parse_ffmpeg_progress(line)
                     if fps or time_pos:
                         self.status_label.config(
-                            text=f"{os.path.basename(input_file)} - fps: {fps} time: {time_pos}"
+                            text=f"{os.path.basename(input_file)}\nfps: {fps}\ntime: {time_pos}"
                         )
                         if duration and time_pos:
                             secs = self.time_to_seconds(time_pos)
