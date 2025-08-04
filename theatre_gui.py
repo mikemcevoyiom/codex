@@ -1,6 +1,7 @@
 import os
 import json
 import subprocess
+import sys
 from pathlib import Path
 from datetime import datetime
 
@@ -19,6 +20,9 @@ DEFAULT_VIDEO_DIR = Path(
 
 # Store GUI settings (currently just the last selected folder)
 SETTINGS_FILE = Path.home() / ".theatre_gui_settings.json"
+
+# Flag to prevent opening a console window for subprocesses on Windows.
+CREATE_NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
 class TheatreApp(tk.Tk):
     """Simple window displaying a movie theatre background with an exit button."""
@@ -251,6 +255,7 @@ class TheatreApp(tk.Tk):
                 capture_output=True,
                 text=True,
                 check=True,
+                creationflags=CREATE_NO_WINDOW,
             )
             return json.loads(result.stdout).get("streams", [])
         except subprocess.CalledProcessError as e:
@@ -287,6 +292,7 @@ class TheatreApp(tk.Tk):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                creationflags=CREATE_NO_WINDOW,
             )
             return result.stdout.strip().lower()
         except Exception:
@@ -308,6 +314,7 @@ class TheatreApp(tk.Tk):
                 capture_output=True,
                 text=True,
                 check=True,
+                creationflags=CREATE_NO_WINDOW,
             )
             return float(result.stdout.strip())
         except Exception as e:
@@ -414,6 +421,7 @@ class TheatreApp(tk.Tk):
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True,
+                    creationflags=CREATE_NO_WINDOW,
                 )
                 codec = result.stdout.strip().lower()
                 if codec in ("hevc", "av1"):
@@ -466,7 +474,12 @@ class TheatreApp(tk.Tk):
             ]
 
             try:
-                process = subprocess.Popen(cmd, stderr=subprocess.PIPE, text=True)
+                process = subprocess.Popen(
+                    cmd,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    creationflags=CREATE_NO_WINDOW,
+                )
                 for line in process.stderr:
                     fps, time_pos = self.parse_ffmpeg_progress(line)
                     if fps or time_pos:
@@ -592,7 +605,12 @@ class TheatreApp(tk.Tk):
             cmd.append(output_path)
 
             try:
-                process = subprocess.Popen(cmd, stderr=subprocess.PIPE, text=True)
+                process = subprocess.Popen(
+                    cmd,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    creationflags=CREATE_NO_WINDOW,
+                )
                 for line in process.stderr:
                     fps, time_pos = self.parse_ffmpeg_progress(line)
                     if fps or time_pos:
