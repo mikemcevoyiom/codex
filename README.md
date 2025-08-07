@@ -28,3 +28,8 @@ pip install -r requirements.txt
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+## Versioning
+
+The GUI displays its current version number in the window title. Increment the
+version by editing the `VERSION` file and committing the change.
