@@ -221,14 +221,20 @@ class TheatreApp(tk.Tk):
         self.selected_folder = folder
         self.select_file_btn.config(text=f"Select Folder\n{folder}")
 
-        self.video_files = sorted(
-            [str(f) for f in Path(folder).rglob("*.mkv")] + [str(f) for f in Path(folder).rglob("*.mp4")]
-        )
-        if not self.video_files:
+        root_files = [
+            str(f) for f in Path(folder).glob("*.mkv")
+        ] + [
+            str(f) for f in Path(folder).glob("*.mp4")
+        ]
+        if not root_files:
             self.log_status("error", message="No MKV or MP4 files found in selected folder.")
             self.convert_video_btn.config(state="disabled")
             self.update_streams_btn.config(state="disabled")
             return
+        self.video_files = sorted(
+            [str(f) for f in Path(folder).rglob("*.mkv")] +
+            [str(f) for f in Path(folder).rglob("*.mp4")]
+        )
 
         self.current_index = 0
         self.selected_file = self.video_files[self.current_index]
