@@ -9,6 +9,12 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk
 
+VERSION_FILE = Path(__file__).parent / "VERSION"
+try:
+    __version__ = VERSION_FILE.read_text(encoding="utf-8").strip()
+except OSError:
+    __version__ = "0.0.0"
+
 
 # Default directory used when no folder is selected. Users can override
 # this path with the STREAM_SELECTOR_DIR environment variable. The default
@@ -29,7 +35,7 @@ class TheatreApp(tk.Tk):
 
     def __init__(self, image_path: Path):
         super().__init__()
-        self.title("Movie Theatre")
+        self.title(f"Movie Theatre v{__version__}")
         self.resizable(False, False)
         # Fixed window size
         self.geometry("800x800")
