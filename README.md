@@ -25,6 +25,21 @@ Only [Pillow](https://python-pillow.org/) is required. Install dependencies usin
 pip install -r requirements.txt
 ```
 
+## Building a Windows executable
+
+Bundle the app into `Video Updater.exe` with PyInstaller. The command below hides
+the console window and includes the background image:
+
+```powershell
+pip install pyinstaller
+
+pyinstaller --onefile --windowed --name "Video Updater" ^
+  --add-data "images\movie_theatre.png;images" ^
+  theatre_gui.py
+```
+
+The resulting executable will be placed in the `dist` directory.
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
