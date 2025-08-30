@@ -491,6 +491,8 @@ class TheatreApp(tk.Tk):
                 "-y",
                 "-i",
                 input_file,
+                "-map",
+                "0",
                 "-c:v",
                 "hevc_amf",
                 "-c:a",
