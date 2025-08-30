@@ -100,8 +100,20 @@ class TheatreApp(tk.Tk):
             self, text="Convert to HEVC", bg="#add8e6", command=self.convert_to_hevc
         )
         # Align convert button with updated streams button
-        self.canvas.create_window(300, y_pos, window=self.convert_video_btn, anchor="n")
+        self.convert_btn_window = self.canvas.create_window(
+            300, y_pos, window=self.convert_video_btn, anchor="n"
+        )
         self.convert_video_btn.config(state="disabled")
+
+        # Transparent codec label positioned to the right of the button
+        self.codec_label = self.canvas.create_text(
+            0, 0, text="Codec: N/A", anchor="w", fill="white"
+        )
+        self.update_idletasks()
+        btn_bbox = self.canvas.bbox(self.convert_btn_window)
+        if btn_bbox:
+            btn_y = (btn_bbox[1] + btn_bbox[3]) / 2
+            self.canvas.coords(self.codec_label, btn_bbox[2] + 10, btn_y)
 
         self.progress_var = tk.DoubleVar(value=0)
         self.progress_bar = ttk.Progressbar(
@@ -138,6 +150,14 @@ class TheatreApp(tk.Tk):
 
     def _save_last_folder(self, folder: str):
         SETTINGS_FILE.write_text(json.dumps({"last_folder": folder}))
+
+    def update_codec_label(self, filepath):
+        codec = self.get_video_codec(filepath)
+        if codec:
+            self.canvas.itemconfig(self.codec_label, text=f"Codec: {codec.upper()}")
+        else:
+            self.canvas.itemconfig(self.codec_label, text="Codec: Unknown")
+        return codec
 
     def log_status(
         self,
@@ -236,6 +256,7 @@ class TheatreApp(tk.Tk):
             self.log_status("error", message="No MKV or MP4 files found in selected folder.")
             self.convert_video_btn.config(state="disabled")
             self.update_streams_btn.config(state="disabled")
+            self.canvas.itemconfig(self.codec_label, text="Codec: N/A")
             return
         self.video_files = sorted(
             [str(f) for f in Path(folder).rglob("*.mkv")] +
@@ -248,6 +269,7 @@ class TheatreApp(tk.Tk):
         self.populate_stream_dropdowns(self.selected_file)
         self.convert_video_btn.config(state="normal")
         self.update_streams_btn.config(state="normal")
+        self.update_codec_label(self.selected_file)
 
     def run_ffprobe(self, filepath, stream_type):
         try:
@@ -436,6 +458,7 @@ class TheatreApp(tk.Tk):
                     creationflags=CREATE_NO_WINDOW,
                 )
                 codec = result.stdout.strip().lower()
+                self.canvas.itemconfig(self.codec_label, text=f"Codec: {codec.upper()}")
                 if codec in ("hevc", "av1"):
                     self.log_status(
                         "skipped",
@@ -508,12 +531,13 @@ class TheatreApp(tk.Tk):
                 if ret == 0:
                     self.processed_dirs.add(converted_dir)
                     self.current_file = output_path
+                    after_codec = self.update_codec_label(output_path)
                     self.log_status(
                         "converted",
                         input_file=input_file,
                         output_file=output_path,
                         before_codec=codec,
-                        after_codec=self.get_video_codec(output_path),
+                        after_codec=after_codec,
                         before_size=before_size,
                         after_size=os.path.getsize(output_path),
                     )
@@ -524,7 +548,7 @@ class TheatreApp(tk.Tk):
                             "before_size": before_size,
                             "after_size": os.path.getsize(output_path),
                             "before_codec": codec,
-                            "after_codec": self.get_video_codec(output_path),
+                            "after_codec": after_codec,
                         }
                     )
                 else:
@@ -577,7 +601,7 @@ class TheatreApp(tk.Tk):
         for idx, input_file in enumerate(self.video_files, start=1):
             self.current_file = input_file
             duration = self.get_duration(input_file)
-            before_codec = self.get_video_codec(input_file)
+            before_codec = self.update_codec_label(input_file)
             before_size = os.path.getsize(input_file)
             converted_dir = os.path.join(os.path.dirname(input_file), "converted")
             os.makedirs(converted_dir, exist_ok=True)
@@ -639,12 +663,13 @@ class TheatreApp(tk.Tk):
                 if ret == 0:
                     self.processed_dirs.add(converted_dir)
                     self.current_file = output_path
+                    after_codec = self.update_codec_label(output_path)
                     self.log_status(
                         "streams_updated",
                         input_file=input_file,
                         output_file=output_path,
                         before_codec=before_codec,
-                        after_codec=self.get_video_codec(output_path),
+                        after_codec=after_codec,
                         before_size=before_size,
                         after_size=os.path.getsize(output_path),
                     )
