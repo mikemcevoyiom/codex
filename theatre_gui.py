@@ -100,11 +100,20 @@ class TheatreApp(tk.Tk):
             self, text="Convert to HEVC", bg="#add8e6", command=self.convert_to_hevc
         )
         # Align convert button with updated streams button
-        self.canvas.create_window(300, y_pos, window=self.convert_video_btn, anchor="n")
+        self.convert_btn_window = self.canvas.create_window(
+            300, y_pos, window=self.convert_video_btn, anchor="n"
+        )
         self.convert_video_btn.config(state="disabled")
 
-        self.codec_label = tk.Label(self, text="Codec: N/A")
-        self.canvas.create_window(480, y_pos, window=self.codec_label, anchor="n")
+        # Transparent codec label positioned to the right of the button
+        self.codec_label = self.canvas.create_text(
+            0, 0, text="Codec: N/A", anchor="w", fill="white"
+        )
+        self.update_idletasks()
+        btn_bbox = self.canvas.bbox(self.convert_btn_window)
+        if btn_bbox:
+            btn_y = (btn_bbox[1] + btn_bbox[3]) / 2
+            self.canvas.coords(self.codec_label, btn_bbox[2] + 10, btn_y)
 
         self.progress_var = tk.DoubleVar(value=0)
         self.progress_bar = ttk.Progressbar(
@@ -145,9 +154,9 @@ class TheatreApp(tk.Tk):
     def update_codec_label(self, filepath):
         codec = self.get_video_codec(filepath)
         if codec:
-            self.codec_label.config(text=f"Codec: {codec.upper()}")
+            self.canvas.itemconfig(self.codec_label, text=f"Codec: {codec.upper()}")
         else:
-            self.codec_label.config(text="Codec: Unknown")
+            self.canvas.itemconfig(self.codec_label, text="Codec: Unknown")
         return codec
 
     def log_status(
@@ -247,7 +256,7 @@ class TheatreApp(tk.Tk):
             self.log_status("error", message="No MKV or MP4 files found in selected folder.")
             self.convert_video_btn.config(state="disabled")
             self.update_streams_btn.config(state="disabled")
-            self.codec_label.config(text="Codec: N/A")
+            self.canvas.itemconfig(self.codec_label, text="Codec: N/A")
             return
         self.video_files = sorted(
             [str(f) for f in Path(folder).rglob("*.mkv")] +
@@ -449,7 +458,7 @@ class TheatreApp(tk.Tk):
                     creationflags=CREATE_NO_WINDOW,
                 )
                 codec = result.stdout.strip().lower()
-                self.codec_label.config(text=f"Codec: {codec.upper()}")
+                self.canvas.itemconfig(self.codec_label, text=f"Codec: {codec.upper()}")
                 if codec in ("hevc", "av1"):
                     self.log_status(
                         "skipped",
