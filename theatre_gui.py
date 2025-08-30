@@ -91,29 +91,27 @@ class TheatreApp(tk.Tk):
         self.update_streams_btn = tk.Button(
             self, text="Update Streams", bg="#90ee90", command=self.update_streams
         )
-        # Shift button slightly left for better spacing
-        self.canvas.create_window(300, y_pos, window=self.update_streams_btn, anchor="n")
-        self.update_streams_btn.config(state="disabled")
-        y_pos += 40
-
         self.convert_video_btn = tk.Button(
             self, text="Convert to HEVC", bg="#add8e6", command=self.convert_to_hevc
         )
-        # Align convert button with updated streams button
+        # Place both buttons on the same line
+        self.canvas.create_window(260, y_pos, window=self.update_streams_btn, anchor="n")
         self.convert_btn_window = self.canvas.create_window(
-            300, y_pos, window=self.convert_video_btn, anchor="n"
+            420, y_pos, window=self.convert_video_btn, anchor="n"
         )
+        self.update_streams_btn.config(state="disabled")
         self.convert_video_btn.config(state="disabled")
 
-        # Transparent codec label positioned to the right of the button
+        # Codec label positioned to the right of the buttons
         self.codec_label = self.canvas.create_text(
-            0, 0, text="Codec: N/A", anchor="w", fill="white"
+            0, 0, text="Codec: N/A", anchor="w", fill="black"
         )
         self.update_idletasks()
         btn_bbox = self.canvas.bbox(self.convert_btn_window)
         if btn_bbox:
             btn_y = (btn_bbox[1] + btn_bbox[3]) / 2
             self.canvas.coords(self.codec_label, btn_bbox[2] + 10, btn_y)
+        y_pos += 40
 
         self.progress_var = tk.DoubleVar(value=0)
         self.progress_bar = ttk.Progressbar(
