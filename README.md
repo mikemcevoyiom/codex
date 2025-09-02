@@ -25,6 +25,20 @@ Only [Pillow](https://python-pillow.org/) is required. Install dependencies usin
 pip install -r requirements.txt
 ```
 
+## InfluxDB Configuration
+
+`theatre_gui.py` reads optional environment variables to configure InfluxDB:
+
+| Variable | Default |
+|----------|---------|
+| `INFLUXDB_URL` | `http://192.168.1.28:8086/` |
+| `INFLUXDB_TOKEN` | `vYAzRtDOejTeACp1SJne6TIPHzamWcpvi_Ekd3R2VA1Zvr4zFSa-bmiWzsy1DQuIBwfQ8psG-CUP7HOqSRgCWg==` |
+| `INFLUXDB_ORG` | `Waterfall` |
+| `INFLUXDB_BUCKET` | `Video_Update` |
+
+Override these values by setting the environment variables before launching the
+application.
+
 ## Building a Windows executable
 
 Bundle the app into `Video Updater.exe` with PyInstaller. The command below hides
