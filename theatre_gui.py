@@ -27,6 +27,16 @@ DEFAULT_VIDEO_DIR = Path(
 # Store GUI settings (currently just the last selected folder)
 SETTINGS_FILE = Path.home() / ".theatre_gui_settings.json"
 
+# InfluxDB configuration defaults. These can be overridden with environment
+# variables at runtime.
+INFLUXDB_URL = os.getenv("INFLUXDB_URL", "http://192.168.1.28:8086/")
+INFLUXDB_TOKEN = os.getenv(
+    "INFLUXDB_TOKEN",
+    "vYAzRtDOejTeACp1SJne6TIPHzamWcpvi_Ekd3R2VA1Zvr4zFSa-bmiWzsy1DQuIBwfQ8psG-CUP7HOqSRgCWg==",
+)
+INFLUXDB_ORG = os.getenv("INFLUXDB_ORG", "Waterfall")
+INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET", "Video_Update")
+
 # Flag to prevent opening a console window for subprocesses on Windows.
 CREATE_NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
