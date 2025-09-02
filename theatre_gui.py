@@ -8,6 +8,7 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk
+from influxdb_client import InfluxDBClient, Point
 
 VERSION_FILE = Path(__file__).parent / "VERSION"
 try:
@@ -29,6 +30,36 @@ SETTINGS_FILE = Path.home() / ".theatre_gui_settings.json"
 
 # Flag to prevent opening a console window for subprocesses on Windows.
 CREATE_NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+
+# InfluxDB configuration for tracking HEVC conversions
+INFLUXDB_URL = "http://192.168.1.28:8086"
+INFLUXDB_TOKEN = (
+    "vYAzRtDOejTeACp1SJne6TIPHzamWcpvi_Ekd3R2VA1Zvr4zFSa-bmiWzsy1DQuIBwfQ8psG-CUP7HOqSRgCWg=="
+)
+INFLUXDB_BUCKET = "Video_Update"
+INFLUXDB_ORG = os.getenv("INFLUXDB_ORG", "my-org")
+
+_influx_client = InfluxDBClient(
+    url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG
+)
+_influx_write_api = _influx_client.write_api()
+
+
+def log_influx_conversion(before_size: int, after_size: int) -> None:
+    """Write conversion metrics to InfluxDB in gigabytes."""
+
+    saved = before_size - after_size
+    point = (
+        Point("hevc_conversion")
+        .field("converted", 1)
+        .field("before_gb", before_size / (1024 ** 3))
+        .field("after_gb", after_size / (1024 ** 3))
+        .field("saved_gb", saved / (1024 ** 3))
+    )
+    try:
+        _influx_write_api.write(bucket=INFLUXDB_BUCKET, record=point)
+    except Exception as e:
+        print(f"InfluxDB write failed: {e}")
 
 class TheatreApp(tk.Tk):
     """Simple window displaying a movie theatre background with an exit button."""
@@ -532,6 +563,7 @@ class TheatreApp(tk.Tk):
                     self.processed_dirs.add(converted_dir)
                     self.current_file = output_path
                     after_codec = self.update_codec_label(output_path)
+                    after_size = os.path.getsize(output_path)
                     self.log_status(
                         "converted",
                         input_file=input_file,
@@ -539,18 +571,19 @@ class TheatreApp(tk.Tk):
                         before_codec=codec,
                         after_codec=after_codec,
                         before_size=before_size,
-                        after_size=os.path.getsize(output_path),
+                        after_size=after_size,
                     )
                     self.convert_log.append(
                         {
                             "time": datetime.now().isoformat(),
                             "filename": os.path.basename(input_file),
                             "before_size": before_size,
-                            "after_size": os.path.getsize(output_path),
+                            "after_size": after_size,
                             "before_codec": codec,
                             "after_codec": after_codec,
                         }
                     )
+                    log_influx_conversion(before_size, after_size)
                 else:
                     raise subprocess.CalledProcessError(ret, cmd)
             except subprocess.CalledProcessError as e:

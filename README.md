@@ -19,11 +19,18 @@ The script expects `images/movie_theatre.png` to be present and requires a graph
 
 ## Requirements
 
-Only [Pillow](https://python-pillow.org/) is required. Install dependencies using:
+Dependencies include [Pillow](https://python-pillow.org/) and
+[influxdb-client](https://github.com/influxdata/influxdb-client-python) for
+tracking conversion statistics. Install them with:
 
 ```bash
 pip install -r requirements.txt
 ```
+
+Conversions log their pre- and post-encoded sizes to an InfluxDB 2.0 instance.
+By default, metrics are sent to `http://192.168.1.28:8086` in the
+`Video_Update` bucket. Set the `INFLUXDB_ORG` environment variable if your
+server uses a custom organization name.
 
 ## Building a Windows executable
 
