@@ -47,12 +47,16 @@ the console window and includes the background image:
 ```powershell
 pip install pyinstaller
 
-pyinstaller --onefile --windowed --name "Video Updater" ^
-  --add-data "images\movie_theatre.png;images" ^
-  theatre_gui.py
+cd C:\Users\Mike\Documents\Python\
+pyinstaller --onefile --windowed --name "Video Updater" `
+  --add-data "Y:\Code\Python\codex\images\movie_theatre.png;images" `
+  Y:\Code\Python\codex\theatre_gui.py
+
+Copy-Item ".\dist\Video Updater.exe" "Y:\Code\Python\codex\"
 ```
 
-The resulting executable will be placed in the `dist` directory.
+The final `Copy-Item` command moves the generated executable back into the
+project directory.
 
 ## License
 
