@@ -47,19 +47,16 @@ the console window and includes the background image:
 ```powershell
 pip install pyinstaller
 
+cd C:\Users\Mike\Documents\Python\
 pyinstaller --onefile --windowed --name "Video Updater" `
-  --add-data "images\movie_theatre.png;images" `
-  theatre_gui.py
+  --add-data "Y:\Code\Python\codex\images\movie_theatre.png;images" `
+  Y:\Code\Python\codex\theatre_gui.py
+
+Copy-Item ".\dist\Video Updater.exe" "Y:\Code\Python\codex\"
 ```
 
-> [!TIP]
-> The example above uses PowerShell's line-continuation character (backtick). If
-> you are using Command Prompt, keep the original caret (`^`) continuation
-> symbol, and on macOS/Linux shells you can place the flags on separate lines
-> with a trailing backslash (`\`). You can also run the entire command on a
-> single line if you prefer.
-
-The resulting executable will be placed in the `dist` directory.
+The final `Copy-Item` command moves the generated executable back into the
+project directory.
 
 ## License
 
