@@ -58,6 +58,32 @@ Copy-Item ".\dist\Video Updater.exe" "Y:\Code\Python\codex\"
 The final `Copy-Item` command moves the generated executable back into the
 project directory.
 
+## Building a Linux executable (Ubuntu)
+
+If you moved from Windows to Ubuntu and want a standalone binary, use
+PyInstaller on Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install pyinstaller
+
+# install runtime tools used by theatre_gui.py
+sudo apt update
+sudo apt install -y ffmpeg python3-tk
+
+pyinstaller --onefile --windowed --name "video-updater" \
+  --add-data "images/movie_theatre.png:images" \
+  theatre_gui.py
+
+./dist/video-updater
+```
+
+Notes:
+- On Linux, `--add-data` uses `source:dest` (colon).
+- The generated binary is Linux-native and will not run on Windows.
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
