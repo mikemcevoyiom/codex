@@ -271,13 +271,11 @@ class TheatreApp(tk.Tk):
             [str(f) for f in Path(folder).rglob("*.mp4")]
         )
 
-        self.current_index = 0
-        self.selected_file = self.video_files[self.current_index]
-        self.current_file = self.selected_file
-        self.populate_stream_dropdowns(self.selected_file)
+        first_file = self.video_files[0]
+        self.populate_stream_dropdowns(first_file)
         self.convert_video_btn.config(state="normal")
         self.update_streams_btn.config(state="normal")
-        self.update_codec_label(self.selected_file)
+        self.update_codec_label(first_file)
 
     def run_ffprobe(self, filepath, stream_type):
         try:
@@ -443,53 +441,29 @@ class TheatreApp(tk.Tk):
         self.convert_log = []
 
         for idx, input_file in enumerate(self.video_files, start=1):
-            self.current_file = input_file
             duration = self.get_duration(input_file)
             before_size = os.path.getsize(input_file)
-            try:
-                result = subprocess.run(
-                    [
-                        "ffprobe",
-                        "-v",
-                        "error",
-                        "-select_streams",
-                        "v:0",
-                        "-show_entries",
-                        "stream=codec_name",
-                        "-of",
-                        "default=noprint_wrappers=1:nokey=1",
-                        input_file,
-                    ],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    creationflags=CREATE_NO_WINDOW,
+            codec = self.update_codec_label(input_file)
+            if codec in ("hevc", "av1"):
+                self.log_status(
+                    "skipped",
+                    input_file=input_file,
+                    message=f"Already {codec.upper()}",
+                    before_codec=codec,
+                    after_codec=codec,
+                    before_size=before_size,
+                    after_size=before_size,
                 )
-                codec = result.stdout.strip().lower()
-                self.canvas.itemconfig(self.codec_label, text=f"Codec: {codec.upper()}")
-                if codec in ("hevc", "av1"):
-                    self.log_status(
-                        "skipped",
-                        input_file=input_file,
-                        message=f"Already {codec.upper()}",
-                        before_codec=codec,
-                        after_codec=codec,
-                        before_size=os.path.getsize(input_file),
-                        after_size=os.path.getsize(input_file),
-                    )
-                    self.convert_log.append(
-                        {
-                            "time": datetime.now().isoformat(),
-                            "filename": os.path.basename(input_file),
-                            "before_size": before_size,
-                            "after_size": before_size,
-                            "before_codec": codec,
-                            "after_codec": codec,
-                        }
-                    )
-                    continue
-            except Exception as e:
-                self.log_status("error", input_file=input_file, message=f"Codec check failed: {e}")
+                self.convert_log.append(
+                    {
+                        "time": datetime.now().isoformat(),
+                        "filename": os.path.basename(input_file),
+                        "before_size": before_size,
+                        "after_size": before_size,
+                        "before_codec": codec,
+                        "after_codec": codec,
+                    }
+                )
                 continue
 
             converted_dir = os.path.join(os.path.dirname(input_file), "converted")
@@ -540,7 +514,6 @@ class TheatreApp(tk.Tk):
                 ret = process.wait()
                 if ret == 0:
                     self.processed_dirs.add(converted_dir)
-                    self.current_file = output_path
                     after_codec = self.update_codec_label(output_path)
                     self.log_status(
                         "converted",
@@ -609,7 +582,6 @@ class TheatreApp(tk.Tk):
         audio_index = audio.split(" ")[1]
 
         for idx, input_file in enumerate(self.video_files, start=1):
-            self.current_file = input_file
             duration = self.get_duration(input_file)
             before_codec = self.update_codec_label(input_file)
             before_size = os.path.getsize(input_file)
@@ -672,7 +644,6 @@ class TheatreApp(tk.Tk):
                 ret = process.wait()
                 if ret == 0:
                     self.processed_dirs.add(converted_dir)
-                    self.current_file = output_path
                     after_codec = self.update_codec_label(output_path)
                     self.log_status(
                         "streams_updated",
