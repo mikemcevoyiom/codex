@@ -19,11 +19,48 @@ The script expects `images/movie_theatre.png` to be present and requires a graph
 
 ## Requirements
 
-Only [Pillow](https://python-pillow.org/) is required. Install dependencies using:
+Python dependency:
+- [Pillow](https://python-pillow.org/)
+
+System/runtime dependencies (Linux):
+- `ffmpeg` (provides both `ffmpeg` and `ffprobe`)
+- `python3-tk` (Tkinter GUI runtime)
+
+Install Python dependencies using:
 
 ```bash
 pip install -r requirements.txt
 ```
+
+### Ubuntu/Debian note (PEP 668: externally-managed-environment)
+
+If you see `error: externally-managed-environment`, you are using the system
+Python `pip` instead of a project virtual environment `pip`. On Ubuntu/Debian,
+use the steps below to ensure the venv-local installer is used:
+
+```bash
+# one-time system packages
+sudo apt update
+sudo apt install -y python3-venv python3-full
+
+# from the project root
+python3 -m venv .venv
+source .venv/bin/activate
+
+# always prefer python -m pip to avoid pip-path confusion
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+Quick verification:
+
+```bash
+which python
+which pip
+python -m pip --version
+```
+
+`which python` and `which pip` should both point inside `.venv/`.
 
 ## InfluxDB Configuration
 
