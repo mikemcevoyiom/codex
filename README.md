@@ -19,7 +19,14 @@ The script expects `images/movie_theatre.png` to be present and requires a graph
 
 ## Requirements
 
-Only [Pillow](https://python-pillow.org/) is required. Install dependencies using:
+Python dependency:
+- [Pillow](https://python-pillow.org/)
+
+System/runtime dependencies (Linux):
+- `ffmpeg` (provides both `ffmpeg` and `ffprobe`)
+- `python3-tk` (Tkinter GUI runtime)
+
+Install Python dependencies using:
 
 ```bash
 pip install -r requirements.txt

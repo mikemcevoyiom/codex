@@ -2,6 +2,7 @@ import os
 import json
 import subprocess
 import sys
+import shutil
 from pathlib import Path
 from datetime import datetime
 
@@ -144,8 +145,29 @@ class TheatreApp(tk.Tk):
         self.status_log = []
         self.convert_log = []
         self.streams_log = []
+        self._missing_tool_alert_shown = False
 
         self.protocol("WM_DELETE_WINDOW", self.quit_app)
+
+    def _handle_missing_tool(self, tool_name: str):
+        self.log_status(
+            "error",
+            message=f"Missing required tool: {tool_name}. Install ffmpeg to provide ffmpeg/ffprobe.",
+        )
+        if self._missing_tool_alert_shown:
+            return
+        self._missing_tool_alert_shown = True
+        messagebox.showerror(
+            "Missing dependency",
+            (
+                f"'{tool_name}' was not found.\n\n"
+                "Please install ffmpeg (it includes ffprobe) and restart the app.\n"
+                "Ubuntu/Debian: sudo apt install -y ffmpeg python3-tk"
+            ),
+        )
+
+    def _ffmpeg_tools_available(self):
+        return shutil.which("ffmpeg") and shutil.which("ffprobe")
 
     def _load_last_folder(self):
         if SETTINGS_FILE.exists():
@@ -298,6 +320,9 @@ class TheatreApp(tk.Tk):
                 creationflags=CREATE_NO_WINDOW,
             )
             return json.loads(result.stdout).get("streams", [])
+        except FileNotFoundError:
+            self._handle_missing_tool("ffprobe")
+            return []
         except subprocess.CalledProcessError as e:
             print(f"ffprobe failed for stream type '{stream_type}':", e)
             return []
@@ -335,6 +360,9 @@ class TheatreApp(tk.Tk):
                 creationflags=CREATE_NO_WINDOW,
             )
             return result.stdout.strip().lower()
+        except FileNotFoundError:
+            self._handle_missing_tool("ffprobe")
+            return None
         except Exception:
             return None
 
@@ -357,6 +385,9 @@ class TheatreApp(tk.Tk):
                 creationflags=CREATE_NO_WINDOW,
             )
             return float(result.stdout.strip())
+        except FileNotFoundError:
+            self._handle_missing_tool("ffprobe")
+            return None
         except Exception as e:
             print(f"ffprobe duration error for {filepath}:", e)
             return None
@@ -425,6 +456,10 @@ class TheatreApp(tk.Tk):
             self.subtitle_dropdown.set(subtitle_options[0])
 
     def convert_to_hevc(self):
+        if not self._ffmpeg_tools_available():
+            self._handle_missing_tool("ffmpeg/ffprobe")
+            return
+
         if not getattr(self, "video_files", None):
             self.log_status("error", message="Please select a folder first.")
             messagebox.showwarning("No Folder Selected", "Please select a folder first.")
@@ -536,6 +571,9 @@ class TheatreApp(tk.Tk):
                     )
                 else:
                     raise subprocess.CalledProcessError(ret, cmd)
+            except FileNotFoundError:
+                self._handle_missing_tool("ffmpeg")
+                break
             except subprocess.CalledProcessError as e:
                 print("FFmpeg error:", e)
                 self.log_status("error", input_file=input_file, message="FFmpeg failed during conversion")
@@ -551,6 +589,10 @@ class TheatreApp(tk.Tk):
         self.update_streams_btn.config(state="normal")
 
     def update_streams(self):
+        if not self._ffmpeg_tools_available():
+            self._handle_missing_tool("ffmpeg/ffprobe")
+            return
+
         if not getattr(self, "video_files", None):
             self.log_status("error", message="Please select a folder first.")
             messagebox.showwarning("No Folder Selected", "Please select a folder first.")
@@ -664,6 +706,9 @@ class TheatreApp(tk.Tk):
                     )
                 else:
                     raise subprocess.CalledProcessError(ret, cmd)
+            except FileNotFoundError:
+                self._handle_missing_tool("ffmpeg")
+                break
             except subprocess.CalledProcessError as e:
                 print("FFmpeg error:", e)
                 self.log_status("error", input_file=input_file, message="FFmpeg failed during stream update")
